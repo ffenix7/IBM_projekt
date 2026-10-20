@@ -1,23 +1,34 @@
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-
-function Cube() {
-    return (
-        <mesh>
-            <boxGeometry args={[2, 2, 2]} />
-            <meshBasicMaterial color={'rgb(110, 192, 3)'} wireframe={true} />
-        </mesh>
-    );
-}
+import { Suspense } from 'react';
+import { Loader } from './AssetLoader';
+import { CarModel } from './CarModel';
+import { Floor } from './Floor';
 
 export default function Scene() {
     return (
-        <div className="w-full h-full">
-            <Canvas camera={{ position: [0, 0, 5] }}>
+        <div className="w-full h-full relative">
+            <Loader />  {/* pasek postępu */}
 
-                <Cube />
+            <Canvas 
+                shadows 
+                camera={{ position: [0, 2, 8], fov: 50 }}
+            >
+                <ambientLight intensity={0.7} />
+                <directionalLight 
+                    position={[5, 8, 5]} 
+                    intensity={1.5} 
+                    castShadow 
+                    shadow-mapSize={[1024, 1024]}
+                />
 
-                <OrbitControls />
+                <Floor />
+
+                <Suspense fallback={null}>
+                    <CarModel url="https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/ferrari.glb" />
+                </Suspense>
+
+                <OrbitControls enableDamping />
             </Canvas>
         </div>
     );
