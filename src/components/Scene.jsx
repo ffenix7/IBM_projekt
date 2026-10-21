@@ -71,7 +71,7 @@ export default function Scene() {
                 <Garage />
 
                 <Suspense fallback={null}>
-                    <CarModel url="https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/ferrari.glb" />
+                    <CarModel url="./Car.glb" />
                 </Suspense>
 
                 <Environment preset="city" blur={0.5} />
