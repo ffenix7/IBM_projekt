@@ -10,5 +10,5 @@ export function CarModel({ url }) {
         }
     });
 
-    return <primitive object={scene} scale={1} position={[0, -1, 0]} />;
+    return <primitive object={scene} scale={1} position={[0, 0, 0]} rotation={[0, 3 * Math.PI / 4, 0]} />;
 }
