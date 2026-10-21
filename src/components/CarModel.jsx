@@ -24,23 +24,23 @@ export function CarModel({
                     child.material.color.set(bodyColor);
                 }
 
-                else if (child.name === 'Opony_przod_material' || child.name === 'Opony_tyl_material'){
+                else if (child.name === 'Opony_przod_material' || child.name === 'Opony_tyl_material') {
                     child.material = child.material.clone();
                     child.material.color.set(tiresColor);
                 }
 
-                else if (child.name === 'Podwozie'){
+                else if (child.name === 'Podwozie') {
                     child.material = child.material.clone();
                     child.material.color.set(chassisColor);
                 }
 
                 //Spojler
-                else if (child.name === 'Object_50'){ 
+                else if (child.name === 'Object_50') {
                     child.material = child.material.clone();
                     child.material.color.set(spoilerColor);
                 }
 
-                else if (child.name === 'Gumy_od_szyb' || child.name === 'Szyby'){
+                else if (child.name === 'Gumy_od_szyb' || child.name === 'Szyby') {
                     child.material = new THREE.MeshStandardMaterial({
                         color: windowsColor,
                         roughness: 0.1,
@@ -54,5 +54,5 @@ export function CarModel({
         });
     }, [car, bodyColor, tiresColor, chassisColor, spoilerColor, windowsColor]);
 
-    return <primitive object={car} scale={1} position={[0, 0, 0]} rotation={[0, 3 * Math.PI / 4, 0]} />;
+    return <primitive object={car} scale={0.65} position={[0, 0, 0]} rotation={[0, 3 * Math.PI / 4, 0]} />;
 }
