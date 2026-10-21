@@ -54,5 +54,5 @@ export function CarModel({
         });
     }, [car, bodyColor, tiresColor, chassisColor, spoilerColor, windowsColor]);
 
-    return <primitive object={scene} scale={1} position={[0, 0, 0]} rotation={[0, 3 * Math.PI / 4, 0]} />;
+    return <primitive object={car} scale={1} position={[0, 0, 0]} rotation={[0, 3 * Math.PI / 4, 0]} />;
 }
