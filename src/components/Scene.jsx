@@ -25,7 +25,7 @@ export default function Scene() {
                 <Floor />
 
                 <Suspense fallback={null}>
-                    <CarModel url="https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/ferrari.glb" />
+                    <CarModel url="./Car.glb" />
                 </Suspense>
 
                 <OrbitControls enableDamping />
