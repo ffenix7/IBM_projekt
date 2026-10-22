@@ -16,6 +16,8 @@ export default function Scene() {
         windows: '#101211'
     });
 
+    const [registrationText, setRegistrationText] = useState("Default");
+
     const updateColor = (part) => (event) => {
         setColors((current) => ({ ...current, [part]: event.target.value }));
     };
@@ -43,6 +45,11 @@ export default function Scene() {
                 <label className="flex items-center justify-between gap-4">
                     Szyby
                     <input type="color" value={colors.windows} onChange={updateColor('windows')} />
+                </label>
+                <label className="flex items-center justify-between gap-4">
+                    Napis na rejestracji
+                    <input type="text" value={registrationText} onChange={(event) => setRegistrationText(event.target.value)}
+                    />
                 </label>
             </div>
 
@@ -113,6 +120,7 @@ export default function Scene() {
                         chassisColor={colors.chassis}
                         spoilerColor={colors.spoiler}
                         windowsColor={colors.windows}
+                        registrationText={registrationText}
                     />
                 </Suspense>
 

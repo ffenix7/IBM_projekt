@@ -31,7 +31,8 @@ export function CarModel({
     tiresColor = '#176193',
     chassisColor = '#c0210c',
     spoilerColor = '#1091b1',
-    windowsColor = '#101211'
+    windowsColor = '#101211',
+    registrationText = "Default"
 }) {
     const gltf = useGLTF(url);
     const car = gltf.scene;
@@ -64,7 +65,7 @@ export function CarModel({
                     setMaterialColor(material, chassisColor, true);
                 }
 
-                //Spojler
+                // Spojler
                 else if (child.name === 'Object_50') {
                     child.material = material;
                     setMaterialColor(material, spoilerColor, true);
@@ -84,9 +85,37 @@ export function CarModel({
                     child.material = child.userData.windowMaterial;
                     setMaterialColor(child.material, windowsColor);
                 }
+
+                else if (child.name === "Tablica_rejestracyjna_tekst") {
+                    child.material = material;
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 512;
+                    canvas.height = 128;
+                    const context = canvas.getContext('2d');
+
+                    context.fillStyle = '#ffffff';
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+
+                    context.strokeStyle = '#000000';
+                    context.lineWidth = 8;
+                    context.strokeRect(0, 0, canvas.width, canvas.height);
+
+                    context.font = 'bold 44px Arial';
+                    context.fillStyle = '#000000';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+                    context.fillText(registrationText, canvas.width / 2, canvas.height / 2);
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    texture.needsUpdate = true;
+
+                    child.material.map = texture;
+                    child.material.needsUpdate = true;
+                }
             }
         });
-    }, [car, bodyColor, tiresColor, chassisColor, spoilerColor, windowsColor]);
+    }, [car, bodyColor, tiresColor, chassisColor, spoilerColor, windowsColor, registrationText]);
 
     return <primitive object={car} scale={0.65} position={[0, 0, 0]} rotation={[0, 3 * Math.PI / 4, 0]} />;
 }
