@@ -5,11 +5,46 @@ import { Suspense } from 'react';
 import { Loader } from './AssetLoader';
 import { CarModel } from './CarModel';
 import { Garage } from './Garage';
+import { useState } from 'react';
 
 export default function Scene() {
+    const [colors, setColors] = useState({
+        body: '#00c946',
+        tires: '#176193',
+        chassis: '#c0210c',
+        spoiler: '#1091b1',
+        windows: '#101211'
+    });
+
+    const updateColor = (part) => (event) => {
+        setColors((current) => ({ ...current, [part]: event.target.value }));
+    };
+
     return (
         <div className="w-full h-full relative">
             <Loader />  {/* pasek postępu */}
+            <div className="absolute left-4 top-4 z-10 flex flex-col gap-2 rounded-lg bg-black/70 p-4 text-sm text-white">
+                <label className="flex items-center justify-between gap-4">
+                    Karoseria
+                    <input type="color" value={colors.body} onChange={updateColor('body')} />
+                </label>
+                <label className="flex items-center justify-between gap-4">
+                    Opony
+                    <input type="color" value={colors.tires} onChange={updateColor('tires')} />
+                </label>
+                <label className="flex items-center justify-between gap-4">
+                    Podwozie
+                    <input type="color" value={colors.chassis} onChange={updateColor('chassis')} />
+                </label>
+                <label className="flex items-center justify-between gap-4">
+                    Spojler
+                    <input type="color" value={colors.spoiler} onChange={updateColor('spoiler')} />
+                </label>
+                <label className="flex items-center justify-between gap-4">
+                    Szyby
+                    <input type="color" value={colors.windows} onChange={updateColor('windows')} />
+                </label>
+            </div>
 
             <Canvas
                 shadows
@@ -71,7 +106,14 @@ export default function Scene() {
                 <Garage />
 
                 <Suspense fallback={null}>
-                    <CarModel url="./Car.glb" />
+                    <CarModel
+                        url="./Car.glb"
+                        bodyColor={colors.body}
+                        tiresColor={colors.tires}
+                        chassisColor={colors.chassis}
+                        spoilerColor={colors.spoiler}
+                        windowsColor={colors.windows}
+                    />
                 </Suspense>
 
                 <Environment preset="city" blur={0.5} />
