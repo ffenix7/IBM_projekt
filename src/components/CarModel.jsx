@@ -1,54 +1,88 @@
 import { useGLTF } from '@react-three/drei';
-import { useEffect } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import * as THREE from 'three';
+
+function cloneMaterials(material) {
+    if (Array.isArray(material)) {
+        return material.map((item) => item.clone());
+    }
+
+    return material.clone();
+}
+
+function setMaterialColor(material, color, removeColorMap = false) {
+    const materials = Array.isArray(material) ? material : [material];
+
+    materials.forEach((item) => {
+        if (item?.color) {
+            if (removeColorMap) {
+                item.map = null;
+            }
+
+            item.color.set(color);
+            item.needsUpdate = true;
+        }
+    });
+}
 
 export function CarModel({
     url,
     bodyColor = '#00c946',
-    tiresColor = '#b10fdd',
+    tiresColor = '#176193',
     chassisColor = '#c0210c',
     spoilerColor = '#1091b1',
     windowsColor = '#101211'
 }) {
     const gltf = useGLTF(url);
     const car = gltf.scene;
+    const materials = useRef(new WeakMap());
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         car.traverse((child) => {
             if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
 
+                if (!materials.current.has(child)) {
+                    materials.current.set(child, cloneMaterials(child.material));
+                }
+
+                const material = materials.current.get(child);
+
                 if (child.name === 'Karoseria') {
-                    child.material = child.material.clone();
-                    child.material.color.set(bodyColor);
+                    child.material = material;
+                    setMaterialColor(material, bodyColor);
                 }
 
                 else if (child.name === 'Opony_przod_material' || child.name === 'Opony_tyl_material') {
-                    child.material = child.material.clone();
-                    child.material.color.set(tiresColor);
+                    child.material = material;
+                    setMaterialColor(material, tiresColor, true);
                 }
 
                 else if (child.name === 'Podwozie') {
-                    child.material = child.material.clone();
-                    child.material.color.set(chassisColor);
+                    child.material = material;
+                    setMaterialColor(material, chassisColor, true);
                 }
 
                 //Spojler
                 else if (child.name === 'Object_50') {
-                    child.material = child.material.clone();
-                    child.material.color.set(spoilerColor);
+                    child.material = material;
+                    setMaterialColor(material, spoilerColor, true);
                 }
 
                 else if (child.name === 'Gumy_od_szyb' || child.name === 'Szyby') {
-                    child.material = new THREE.MeshStandardMaterial({
-                        color: windowsColor,
-                        roughness: 0.1,
-                        metalness: 0.9,
-                        transparent: true,
-                        opacity: 1.0,
-                        side: THREE.DoubleSide
-                    });
+                    if (!child.userData.windowMaterial) {
+                        child.userData.windowMaterial = new THREE.MeshStandardMaterial({
+                            roughness: 0.1,
+                            metalness: 0.9,
+                            transparent: true,
+                            opacity: 1.0,
+                            side: THREE.DoubleSide
+                        });
+                    }
+
+                    child.material = child.userData.windowMaterial;
+                    setMaterialColor(child.material, windowsColor);
                 }
             }
         });
