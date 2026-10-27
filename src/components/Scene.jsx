@@ -54,6 +54,7 @@ export default function Scene() {
     const [registrationText, setRegistrationText] = useState('Default');
 
     const [selectedRim, setSelectedRim] = useState('Felgi1');
+    const [rimSize, setRimSize] = useState(21);
 
     const [isFocused, setIsFocused] = useState(false);
 
@@ -158,6 +159,18 @@ export default function Scene() {
                     </select>
                 </label>
 
+                {/* <label className="flex items-center justify-between gap-4 font-semibold">
+                    Rozmiar felg: {rimSize}"
+                    <input
+                        type="range"
+                        min="19"
+                        max="21"
+                        step="1"
+                        value={rimSize}
+                        onChange={(event) => setRimSize(Number(event.target.value))}
+                    />
+                </label> */}
+
                 <hr className="border-gray-600 my-1" />
 
                 <label className="flex items-center justify-between gap-4">
@@ -243,6 +256,7 @@ export default function Scene() {
                     <CarModel
                         url="./Car.glb"
                         selectedRimName={selectedRim}
+                        rimSize={rimSize}
                         bodyColor={colors.body}
                         tiresColor={colors.tires}
                         chassisColor={colors.chassis}
