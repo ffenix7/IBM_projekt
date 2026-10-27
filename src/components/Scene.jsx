@@ -64,7 +64,7 @@ export default function Scene() {
         return () => {
             if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
             events.forEach(event => {
-                window.removeEventListener(event, handleUserActivity);
+                window.removeEventListener(event, resetIdleTimer);
             });
         };
     }, []);
