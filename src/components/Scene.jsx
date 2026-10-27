@@ -1,12 +1,16 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
-import { Suspense, useRef } from 'react';
+import { Suspense, useState, useRef } from 'react';
 import { Loader } from './AssetLoader';
 import { CarModel } from './CarModel';
 import { Garage } from './Garage';
 import { Dots } from './Dots';
-import { useState } from 'react';
+
+const RIM_OPTIONS = [
+    { value: 'Felgi1', label: 'Felgi Sportowe (1)' },
+    { value: 'Felgi2', label: 'Felgi Klasyczne (2)' },
+];
 
 function CameraRig({ targetPos, cameraPos, isAnimated, onArrived, controlsRef }) {
     useFrame((state, delta) => {
@@ -44,10 +48,12 @@ export default function Scene() {
         tires: '#176193',
         chassis: '#c0210c',
         spoiler: '#1091b1',
-        windows: '#101211'
+        windows: '#101211',
     });
 
-    const [registrationText, setRegistrationText] = useState("Default");
+    const [registrationText, setRegistrationText] = useState('Default');
+
+    const [selectedRim, setSelectedRim] = useState('Felgi1');
 
     const [isFocused, setIsFocused] = useState(false);
 
@@ -137,6 +143,23 @@ export default function Scene() {
                 </button>
             )}
             <div className="absolute left-4 top-4 z-10 flex flex-col gap-2 rounded-lg bg-black/70 p-4 text-sm text-white">
+                <label className="flex items-center justify-between gap-4 font-semibold text-sky-400">
+                    Wzór felg
+                    <select
+                        className="bg-gray-800 text-white p-1 rounded border border-gray-600"
+                        value={selectedRim}
+                        onChange={(e) => setSelectedRim(e.target.value)}
+                    >
+                        {RIM_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+
+                <hr className="border-gray-600 my-1" />
+
                 <label className="flex items-center justify-between gap-4">
                     Karoseria
                     <input type="color" value={colors.body} onChange={updateColor('body')} />
@@ -159,7 +182,11 @@ export default function Scene() {
                 </label>
                 <label className="flex items-center justify-between gap-4">
                     Napis na rejestracji
-                    <input type="text" value={registrationText} onChange={(event) => setRegistrationText(event.target.value)}
+                    <input
+                        type="text"
+                        className="bg-gray-800 text-white px-2 py-1 rounded border border-gray-600 w-32"
+                        value={registrationText}
+                        onChange={(event) => setRegistrationText(event.target.value)}
                     />
                 </label>
             </div>
@@ -206,35 +233,16 @@ export default function Scene() {
                     shadow-normalBias={0.03}
                 />
 
-                <spotLight
-                    position={[-5, 7, 3]}
-                    angle={0.6}
-                    penumbra={0.7}
-                    intensity={60}
-                    color="#38bdf8"
-                />
-
-                <spotLight
-                    position={[5, 7, 3]}
-                    angle={0.6}
-                    penumbra={0.7}
-                    intensity={60}
-                    color="#f43f5e"
-                />
-
-                <spotLight
-                    position={[0, 7, -5]}
-                    angle={0.8}
-                    penumbra={0.9}
-                    intensity={30}
-                    color="#a855f7"
-                />
+                <spotLight position={[-5, 7, 3]} angle={0.6} penumbra={0.7} intensity={60} color="#38bdf8" />
+                <spotLight position={[5, 7, 3]} angle={0.6} penumbra={0.7} intensity={60} color="#f43f5e" />
+                <spotLight position={[0, 7, -5]} angle={0.8} penumbra={0.9} intensity={30} color="#a855f7" />
 
                 <Garage />
 
                 <Suspense fallback={null}>
                     <CarModel
                         url="./Car.glb"
+                        selectedRimName={selectedRim}
                         bodyColor={colors.body}
                         tiresColor={colors.tires}
                         chassisColor={colors.chassis}
@@ -261,9 +269,7 @@ export default function Scene() {
                     minDistance={isFocused ? 0.8 : 5}
                     maxDistance={isFocused ? 3 : 8}
                     target={[0, 0.5, 0]}
-                    mouseButtons={{
-                        RIGHT: THREE.MOUSE.ROTATE
-                    }}
+                    mouseButtons={{ RIGHT: THREE.MOUSE.ROTATE }}
                 />
             </Canvas>
         </div>
