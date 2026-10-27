@@ -2,6 +2,11 @@ import { useGLTF } from '@react-three/drei';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
+export const SPOILER_FILES = {
+    Spoiler1: './Spoiler.glb',
+    Spoiler2: './Spoiler2.glb'
+}
+
 export const RIM_FILES = {
     Felgi1: './Felgi1.glb',
     Felgi2: './Felgi2.glb',
@@ -67,6 +72,7 @@ function makeWheelSet(source, { cloneMats = false } = {}) {
 export function CarModel({
     url,
     selectedRimName = 'Felgi1',
+    selectedSpoilerName = 'Spoiler2',
     rimSize = 21,
     bodyColor = '#00c946',
     tiresColor = '#176193',
@@ -83,6 +89,9 @@ export function CarModel({
     const rim2 = useGLTF(RIM_FILES.Felgi2);
     const tires = useGLTF(TIRES_FILE);
 
+    const spoiler1 = useGLTF(SPOILER_FILES.Spoiler1);
+    const spoiler2 = useGLTF(SPOILER_FILES.Spoiler2);
+
     // Clones of the rims and tires, each wheel wrapped in its own pivot
     const wheelSets = useMemo(
         () => ({
@@ -93,11 +102,13 @@ export function CarModel({
         [rim1.scene, rim2.scene, tires.scene]
     );
 
-    // Rim visibility
+    // Parts visibility
     useLayoutEffect(() => {
         wheelSets.Felgi1.scene.visible = selectedRimName === 'Felgi1';
         wheelSets.Felgi2.scene.visible = selectedRimName === 'Felgi2';
-    }, [wheelSets, selectedRimName]);
+        spoiler1.scene.visible = selectedSpoilerName === 'Spoiler1';
+        spoiler2.scene.visible = selectedSpoilerName === 'Spoiler2';
+    }, [wheelSets, spoiler1, spoiler2, selectedRimName, selectedSpoilerName]);
 
     useLayoutEffect(() => {
         const s = rimSize / MAX_RIM;
@@ -114,7 +125,18 @@ export function CarModel({
                 setMaterialColor(child.material, tiresColor, true);
             }
         });
-    }, [wheelSets, tiresColor]);
+        spoiler1.scene.traverse((child) =>{
+            if (child.isMesh){
+                setMaterialColor(child.material, spoilerColor, true);
+            }
+        })
+
+        spoiler2.scene.traverse((child) =>{
+            if (child.isMesh){
+                setMaterialColor(child.material, spoilerColor, true);
+            }
+        })
+    }, [wheelSets, tiresColor, spoilerColor]);
 
     // Colors, window material, registration plate
     useLayoutEffect(() => {
@@ -134,9 +156,6 @@ export function CarModel({
                     setMaterialColor(material, bodyColor);
                 }  else if (child.name === 'Podwozie') {
                     setMaterialColor(material, chassisColor, true);
-                } else if (child.name === 'Object_50') {
-                    // Spojler
-                    setMaterialColor(material, spoilerColor, true);
                 } else if (child.name === 'Gumy_od_szyb' || child.name === 'Szyby') {
                     if (!child.userData.windowMaterial) {
                         child.userData.windowMaterial = new THREE.MeshStandardMaterial({
@@ -188,10 +207,14 @@ export function CarModel({
             <primitive object={wheelSets.Felgi1.scene} />
             <primitive object={wheelSets.Felgi2.scene} />
             <primitive object={wheelSets.tires.scene} />
+            <primitive object={spoiler1.scene} />
+            <primitive object={spoiler2.scene} />
         </group>
     );
 }
 
 useGLTF.preload(RIM_FILES.Felgi1);
 useGLTF.preload(RIM_FILES.Felgi2);
+useGLTF.preload(SPOILER_FILES.Spoiler1);
+useGLTF.preload(SPOILER_FILES.Spoiler2);
 useGLTF.preload(TIRES_FILE);

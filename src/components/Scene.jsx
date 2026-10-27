@@ -144,7 +144,7 @@ export default function Scene() {
                 </button>
             )}
             <div className="absolute left-4 top-4 z-10 flex flex-col gap-2 rounded-lg bg-black/70 p-4 text-sm text-white">
-                <label className="flex items-center justify-between gap-4 font-semibold text-sky-400">
+                {/* <label className="flex items-center justify-between gap-4 font-semibold text-sky-400">
                     Wzór felg
                     <select
                         className="bg-gray-800 text-white p-1 rounded border border-gray-600"
@@ -157,7 +157,7 @@ export default function Scene() {
                             </option>
                         ))}
                     </select>
-                </label>
+                </label> */}
 
                 {/* <label className="flex items-center justify-between gap-4 font-semibold">
                     Rozmiar felg: {rimSize}"
@@ -171,7 +171,7 @@ export default function Scene() {
                     />
                 </label> */}
 
-                <hr className="border-gray-600 my-1" />
+                {/* <hr className="border-gray-600 my-1" /> */}
 
                 <label className="flex items-center justify-between gap-4">
                     Karoseria
