@@ -6,9 +6,9 @@ export const RIM_FILES = {
     Felgi1: './Felgi1.glb',
     Felgi2: './Felgi2.glb',
 };
+const TIRES_FILE = './Opony.glb';
 
-const RIM_POSITION = [0, 0, 0];
-const RIM_ROTATION = [0, 0, 0];
+const MAX_RIM = 22;
 
 function cloneMaterials(material) {
     if (Array.isArray(material)) {
@@ -31,9 +31,43 @@ function setMaterialColor(material, color, removeColorMap = false) {
     });
 }
 
+function getWheelNodes(scene) {
+    let node = scene;
+    while (node.children.length === 1) node = node.children[0];
+    return [...node.children];
+}
+
+function createPivots(scene) {
+    scene.updateMatrixWorld(true);
+    
+    return getWheelNodes(scene).map((wheel) => {
+        const parent = wheel.parent;
+        const box = new THREE.Box3().setFromObject(wheel);
+        const pivot = new THREE.Group();
+
+        pivot.position.copy(parent.worldToLocal(box.getCenter(new THREE.Vector3())));
+        parent.add(pivot);
+        pivot.attach(wheel);
+        return pivot;
+    });
+}
+
+function makeWheelSet(source, { cloneMats = false } = {}) {
+    const scene = source.clone(true);
+
+    scene.traverse((child) => {
+        if (child.isMesh && cloneMats) {
+            child.material = cloneMaterials(child.material);
+        }
+    });
+
+    return { scene, pivots: createPivots(scene) };
+}
+
 export function CarModel({
     url,
     selectedRimName = 'Felgi1',
+    rimSize = 21,
     bodyColor = '#00c946',
     tiresColor = '#176193',
     chassisColor = '#c0210c',
@@ -47,23 +81,42 @@ export function CarModel({
 
     const rim1 = useGLTF(RIM_FILES.Felgi1);
     const rim2 = useGLTF(RIM_FILES.Felgi2);
+    const tires = useGLTF(TIRES_FILE);
 
-    const rimScenes = useMemo(
+    // Clones of the rims and tires, each wheel wrapped in its own pivot
+    const wheelSets = useMemo(
         () => ({
-            Felgi1: rim1.scene.clone(true),
-            Felgi2: rim2.scene.clone(true),
+            Felgi1: makeWheelSet(rim1.scene),
+            Felgi2: makeWheelSet(rim2.scene),
+            tires: makeWheelSet(tires.scene, { cloneMats: true }),
         }),
-        [rim1.scene, rim2.scene]
+        [rim1.scene, rim2.scene, tires.scene]
     );
 
     // Rim visibility
     useLayoutEffect(() => {
-        Object.entries(rimScenes).forEach(([name, scene]) => {
-            scene.visible = name === selectedRimName;
-        });
-    }, [rimScenes, selectedRimName]);
+        wheelSets.Felgi1.scene.visible = selectedRimName === 'Felgi1';
+        wheelSets.Felgi2.scene.visible = selectedRimName === 'Felgi2';
+    }, [wheelSets, selectedRimName]);
 
-    // Colors, window material, registration plate, hiding default tires
+    useLayoutEffect(() => {
+        const s = rimSize / MAX_RIM;
+        const scale = new THREE.Vector3(s, s, 1);
+
+        Object.values(wheelSets).forEach(({ pivots }) =>
+            pivots.forEach((pivot) => pivot.scale.copy(scale))
+        );
+    }, [wheelSets, rimSize]);
+
+    useLayoutEffect(() => {
+        wheelSets.tires.scene.traverse((child) => {
+            if (child.isMesh) {
+                setMaterialColor(child.material, tiresColor, true);
+            }
+        });
+    }, [wheelSets, tiresColor]);
+
+    // Colors, window material, registration plate
     useLayoutEffect(() => {
         car.traverse((child) => {
             if (child.isMesh) {
@@ -79,9 +132,7 @@ export function CarModel({
 
                 if (child.name === 'Karoseria') {
                     setMaterialColor(material, bodyColor);
-                } else if (child.name === 'Opony_przod_material' || child.name === 'Opony_tyl_material') {
-                    setMaterialColor(material, tiresColor, true);
-                } else if (child.name === 'Podwozie') {
+                }  else if (child.name === 'Podwozie') {
                     setMaterialColor(material, chassisColor, true);
                 } else if (child.name === 'Object_50') {
                     // Spojler
@@ -126,12 +177,6 @@ export function CarModel({
 
                     child.material.map = texture;
                     child.material.needsUpdate = true;
-                } 
-                // Default rims/tires of the original model
-                else if (
-                    ['Object_38', 'Object_39', 'Object_40', 'Object_42', 'Object_43', 'Object_44'].includes(child.name)
-                ) {
-                    child.visible = false;
                 }
             }
         });
@@ -140,14 +185,13 @@ export function CarModel({
     return (
         <group scale={0.65} position={[0, 0, 0]} rotation={[0, (3 * Math.PI) / 4, 0]}>
             <primitive object={car} />
-
-            <group position={RIM_POSITION} rotation={RIM_ROTATION}>
-                <primitive object={rimScenes.Felgi1} />
-                <primitive object={rimScenes.Felgi2} />
-            </group>
+            <primitive object={wheelSets.Felgi1.scene} />
+            <primitive object={wheelSets.Felgi2.scene} />
+            <primitive object={wheelSets.tires.scene} />
         </group>
     );
 }
 
 useGLTF.preload(RIM_FILES.Felgi1);
 useGLTF.preload(RIM_FILES.Felgi2);
+useGLTF.preload(TIRES_FILE);
