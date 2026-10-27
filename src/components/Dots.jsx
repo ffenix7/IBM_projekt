@@ -18,6 +18,7 @@ export function Dots({ onDotClick }) {
                     onClick={(e) => {
                         e.stopPropagation();
                         if (onDotClick) onDotClick(dot.id);
+                        document.body.style.cursor = 'auto';
                     }}
                     onPointerOver={() => document.body.style.cursor = 'pointer'}
                     onPointerOut={() => document.body.style.cursor = 'auto'}
