@@ -55,10 +55,8 @@ export default function Scene() {
     useEffect(() => {
         const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'wheel'];
 
-        const handleUserActivity = () => resetIdleTimer();
-
         events.forEach(event => {
-            window.addEventListener(event, handleUserActivity);
+            window.addEventListener(event, resetIdleTimer);
         });
 
         resetIdleTimer();
