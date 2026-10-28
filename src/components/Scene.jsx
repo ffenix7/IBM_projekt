@@ -182,7 +182,7 @@ export default function Scene() {
     });
 
     const [colors, setColors] = useState({
-        body: '#00c946',
+        body: '#1091B1',
         tires: '#000000',
         chassis: '#060606',
         spoiler: '#374b50',

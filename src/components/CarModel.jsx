@@ -74,7 +74,7 @@ export function CarModel({
     selectedRimName = 'Felgi1',
     selectedSpoilerName = 'Spoiler2',
     rimSize = 21,
-    bodyColor = '#00c946',
+    bodyColor = '#1091B1',
     tiresColor = '#000000',
     chassisColor = '#060606',
     spoilerColor = '#1091b1',
