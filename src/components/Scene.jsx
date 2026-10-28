@@ -1,7 +1,7 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
-import { Suspense, useState, useRef } from 'react';
+import { Suspense, useState, useRef, useEffect } from 'react';
 import { Loader } from './AssetLoader';
 import { CarModel } from './CarModel';
 import { Garage } from './Garage';
@@ -36,6 +36,38 @@ function CameraRig({ targetPos, cameraPos, isAnimated, onArrived, controlsRef })
 
 export default function Scene() {
     const controlsRef = useRef();
+
+    const [isIdle, setIsIdle] = useState(false);
+    const idleTimerRef = useRef(null);
+
+    const resetIdleTimer = () => {
+        setIsIdle(false);
+
+        if (idleTimerRef.current) {
+            clearTimeout(idleTimerRef.current);
+        }
+
+        idleTimerRef.current = setTimeout(() => {
+            setIsIdle(true);
+        }, 10000);
+    };
+
+    useEffect(() => {
+        const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'wheel'];
+
+        events.forEach(event => {
+            window.addEventListener(event, resetIdleTimer);
+        });
+
+        resetIdleTimer();
+
+        return () => {
+            if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+            events.forEach(event => {
+                window.removeEventListener(event, resetIdleTimer);
+            });
+        };
+    }, []);
 
     const [animConfig, setAnimConfig] = useState({
         targetPos: [0, 0.5, 0],
@@ -274,10 +306,12 @@ export default function Scene() {
                 <OrbitControls
                     ref={controlsRef}
                     enableDamping
+                    autoRotate={isIdle && !isFocused}
+                    autoRotateSpeed={1.0}
                     minPolarAngle={Math.PI / 4}
                     maxPolarAngle={Math.PI / 2}
-                    minAzimuthAngle={-Math.PI / 4}
-                    maxAzimuthAngle={3 * Math.PI / 4}
+                    minAzimuthAngle={isIdle ? -Infinity : -Math.PI / 4}
+                    maxAzimuthAngle={isIdle ? -Infinity : 3 * Math.PI / 4}
                     enableRotate={!isFocused}
                     enablePan={false}
                     minDistance={isFocused ? 0.8 : 5}
