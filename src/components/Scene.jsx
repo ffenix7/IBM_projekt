@@ -6,6 +6,7 @@ import { Loader } from './AssetLoader';
 import { CarModel } from './CarModel';
 import { Garage } from './Garage';
 import { Dots } from './Dots';
+import AuthPanel from './AuthPanel';
 
 // Left menu: parts that can be changed
 const PARTS = [
@@ -374,6 +375,7 @@ export default function Scene() {
     return (
         <div className="w-full h-full relative">
             <Loader />  {/* pasek postępu */}
+            <AuthPanel />
 
             {isFocused && (
                 <button
