@@ -1,12 +1,20 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import crypto from 'node:crypto';
+import jwt from 'jsonwebtoken';
 import { sequelize, Users } from './db.js';
 
 const app = express();
 app.use(express.json());
 
-const sessions = {}; // token -> userId
+const JWT_SECRET = process.env.JWT_SECRET || 'development-secret-change-me';
+
+function createToken(user) {
+    return jwt.sign(
+        { sub: user.id, email: user.email, name: user.name },
+        JWT_SECRET,
+        { expiresIn: '1h' },
+    );
+}
 
 app.post('/api/register', async (req, res) => {
     try {
@@ -19,8 +27,7 @@ app.post('/api/register', async (req, res) => {
 
         const passwordHash = await bcrypt.hash(password, 10);
         const user = await Users.create({ email, passwordHash, name: name || null });
-        const token = crypto.randomUUID();
-        sessions[token] = user.id;
+        const token = createToken(user);
         res.json({ token, user: { id: user.id, email, name: user.name } });
     } catch (err) {
         console.error(err);
@@ -35,8 +42,7 @@ app.post('/api/login', async (req, res) => {
         if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
             return res.status(401).json({ error: 'Nieprawidłowy e-mail lub hasło.' });
         }
-        const token = crypto.randomUUID();
-        sessions[token] = user.id;
+        const token = createToken(user);
         res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
     } catch (err) {
         console.error(err);
@@ -45,7 +51,6 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => {
-    delete sessions[req.body.token];
     res.json({ ok: true });
 });
 

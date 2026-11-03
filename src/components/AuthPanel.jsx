@@ -36,7 +36,6 @@ export default function AuthPanel() {
     };
 
     const logout = async () => {
-        await post('/api/logout', { token: localStorage.getItem('token') });
         localStorage.clear();
         setUser(null);
     };
