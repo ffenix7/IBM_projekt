@@ -6,7 +6,7 @@ import { Loader } from './AssetLoader';
 import { CarModel } from './CarModel';
 import { Garage } from './Garage';
 import { Dots } from './Dots';
-import AuthPanel from './AuthPanel';
+import { AuthPanel, get, post } from './AuthPanel';
 
 // Left menu: parts that can be changed
 const PARTS = [
@@ -175,6 +175,7 @@ function Divider() {
 // Scene
 export default function Scene() {
     const controlsRef = useRef();
+    const buildCacheRef = useRef(new Map());
 
     const [isIdle, setIsIdle] = useState(false);
     const idleTimerRef = useRef(null);
@@ -227,6 +228,11 @@ export default function Scene() {
     const [selectedRim, setSelectedRim] = useState('Felgi1');
     const [rimSize] = useState(21);
     const [selectedSpoiler, setSelectedSpoiler] = useState('Spoiler2');
+    const [activeSlot, setActiveSlot] = useState(1);
+    const [buildSlots, setBuildSlots] = useState([]);
+    const [isBuildsLoading, setIsBuildsLoading] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem('token')));
 
     const [activePart, setActivePart] = useState(null); // id from PARTS or null
 
@@ -236,6 +242,63 @@ export default function Scene() {
     const setColor = (part) => (color) => {
         setColors((current) => ({ ...current, [part]: color }));
     };
+
+    const applyBuild = (config) => {
+        if (!config) return;
+        if (config.tire) setSelectedRim(config.tire);
+        if (config.spoiler) setSelectedSpoiler(config.spoiler);
+        if (config.registrationText !== undefined) setRegistrationText(config.registrationText);
+        if (config.colors) setColors((current) => ({ ...current, ...config.colors }));
+    };
+
+    const loadBuildSlot = async (slot) => {
+        setActiveSlot(slot);
+        if (!localStorage.getItem('token')) return;
+
+        try {
+            let config = buildCacheRef.current.get(slot);
+            if (config === undefined) {
+                const result = await get(`/api/builds/${slot}`);
+                config = result.config;
+                buildCacheRef.current.set(slot, config);
+            }
+            applyBuild(config);
+        } catch (error) {
+            console.error('Nie udało się załadować buildu:', error.message);
+        }
+    };
+
+    const loadAvailableBuilds = async () => {
+        if (!localStorage.getItem('token')) {
+            buildCacheRef.current.clear();
+            setBuildSlots([]);
+            return;
+        }
+
+        setIsBuildsLoading(true);
+        try {
+            const result = await get('/api/builds');
+            setBuildSlots(result.slots);
+            const latest = result.slots
+                .filter((slot) => slot.hasBuild)
+                .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))[0];
+            await loadBuildSlot(latest?.slot || 1);
+        } catch (error) {
+            console.error('Nie udało się pobrać buildów:', error.message);
+        } finally {
+            setIsBuildsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        const handleAuthChanged = () => {
+            setIsAuthenticated(Boolean(localStorage.getItem('token')));
+            loadAvailableBuilds();
+        };
+        window.addEventListener('auth-changed', handleAuthChanged);
+        loadAvailableBuilds();
+        return () => window.removeEventListener('auth-changed', handleAuthChanged);
+    }, []);
 
     // Only moves the camera; never touches activePart
     const focusCamera = (viewId) => {
@@ -372,10 +435,93 @@ export default function Scene() {
 
     const activePartData = PARTS.find((part) => part.id === activePart);
 
+    const saveBuild = async () => {
+        console.log('Kliknięto "Zapisz build"');
+        if (!localStorage.getItem('token')) {
+            console.error('Zaloguj się, aby zapisać build.');
+            return;
+        }
+
+        try {
+            const result = await post('/api/saveBuild', {
+                slot: activeSlot,
+                config: {
+                    tire: selectedRim,
+                    spoiler: selectedSpoiler,
+                    registrationText,
+                    colors,
+                },
+            });
+            buildCacheRef.current.set(activeSlot, result.slot.config);
+            setBuildSlots((current) => current.map((slot) => (
+                slot.slot === activeSlot
+                    ? { ...slot, hasBuild: true, updatedAt: result.slot.updatedAt }
+                    : slot
+            )));
+            console.log(result);
+        } catch (error) {
+            console.error('Nie udało się zapisać buildu:', error.message);
+        }
+    };
     return (
         <div className="w-full h-full relative">
             <Loader />  {/* pasek postępu */}
-            <AuthPanel />
+            <div className="absolute right-4 top-4 z-20">
+                <button
+                    type="button"
+                    onClick={() => setIsSettingsOpen((current) => !current)}
+                    aria-label="Ustawienia"
+                    aria-expanded={isSettingsOpen}
+                    className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-black/40 text-white shadow-lg backdrop-blur-md transition hover:border-white/30 hover:bg-white/10"
+                >
+                    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.3 2.8h3.4l.5 2.1a7.7 7.7 0 0 1 1.6.9l2-.8 1.7 2.9-1.6 1.5c.1.6.2 1.1.2 1.7s-.1 1.1-.2 1.7l1.6 1.5-1.7 2.9-2-.8a7.7 7.7 0 0 1-1.6.9l-.5 2.1h-3.4l-.5-2.1a7.7 7.7 0 0 1-1.6-.9l-2 .8-1.7-2.9 1.6-1.5a7.7 7.7 0 0 1-.2-1.7c0-.6.1-1.1.2-1.7L4.5 7.9l1.7-2.9 2 .8a7.7 7.7 0 0 1 1.6-.9l.5-2.1Z" />
+                        <circle cx="12" cy="11.1" r="2.7" />
+                    </svg>
+                </button>
+
+                {isSettingsOpen && (
+                    <div className="mt-2 flex w-56 flex-col gap-3 rounded-2xl border border-white/10 bg-black/75 p-3 text-white shadow-xl backdrop-blur-md">
+                        <AuthPanel embedded />
+                        {isAuthenticated && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={handleDotsView}
+                                    className="rounded-lg bg-white/20 px-3 py-2 text-sm hover:bg-white/30"
+                                >
+                                    {isShown ? 'Schowaj kropki' : 'Pokaż kropki'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={saveBuild}
+                                    className="rounded-lg bg-sky-600 px-3 py-2 text-sm hover:bg-sky-500"
+                                >
+                                    Zapisz build {activeSlot}
+                                </button>
+                                <div>
+                                    <p className="mb-2 text-xs text-white/60">Wybierz build</p>
+                                    <div className="grid grid-cols-3 gap-1">
+                                        {[1, 2, 3].map((slot) => (
+                                            <button
+                                                key={slot}
+                                                type="button"
+                                                onClick={() => loadBuildSlot(slot)}
+                                                disabled={isBuildsLoading}
+                                                className={`rounded px-2 py-1 text-xs ${
+                                                    activeSlot === slot ? 'bg-sky-600' : 'bg-white/20 hover:bg-white/30'
+                                                }`}
+                                            >
+                                                {slot}{buildSlots.find((item) => item.slot === slot)?.hasBuild ? ' •' : ''}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {isFocused && (
                 <button
@@ -385,19 +531,10 @@ export default function Scene() {
                     Resetuj widok
                 </button>
             )}
-            {!isFocused && (
-                <button
-                    onClick={handleDotsView}
-                    className="absolute right-4 top-4 z-10 bg-white/20 text-white px-4 py-2 rounded-lg text-sm"
-                >
-                    {isShown ? 'Schowaj' : 'Pokaż'} kropki
-                </button>
-            )}
-
             {/* Left menu */}
             <nav
                 aria-label="Części samochodu"
-                className="absolute left-4 top-4 z-10 flex max-h-[calc(100%-2rem)] flex-col gap-2 overflow-y-auto"
+                className="absolute left-4 top-20 z-10 flex max-h-[calc(100%-5rem)] flex-col gap-2 overflow-y-auto"
             >
                 {PARTS.map((part) => (
                     <PartButton
