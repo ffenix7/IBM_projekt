@@ -1,9 +1,13 @@
 import { useState } from 'react';
 
-async function post(url, body) {
+export async function post(url, body) {
+    const token = localStorage.getItem('token');
     const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(body),
     });
     const text = await res.text();
@@ -12,7 +16,18 @@ async function post(url, body) {
     return data;
 }
 
-export default function AuthPanel() {
+export async function get(url) {
+    const token = localStorage.getItem('token');
+    const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : {};
+    if (!res.ok) throw new Error(data.error || `Błąd serwera (${res.status})`);
+    return data;
+}
+
+export function AuthPanel({ embedded = false }) {
     const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user')));
     const [isOpen, setIsOpen] = useState(false);
     const [mode, setMode] = useState('login');
@@ -30,6 +45,7 @@ export default function AuthPanel() {
             setUser(data.user);
             setError('');
             setIsOpen(false);
+            window.dispatchEvent(new Event('auth-changed'));
         } catch (err) {
             setError(err.message);
         }
@@ -38,13 +54,14 @@ export default function AuthPanel() {
     const logout = async () => {
         localStorage.clear();
         setUser(null);
+        window.dispatchEvent(new Event('auth-changed'));
     };
 
     if (user) {
         return (
-            <div className="absolute right-4 top-16 z-20 flex gap-3 rounded-lg bg-slate-900 p-2 text-white">
-                <span>{user.name || user.email}</span>
-                <button onClick={logout}>Wyloguj</button>
+            <div className={`rounded-lg bg-slate-900 p-2 text-white ${embedded ? '' : 'absolute right-4 top-16 z-20'}`}>
+                <span>{user.name || user.email}</span><br/>
+                <button type="button" onClick={logout} className="text-white/70 hover:text-white cursor-pointer">Wyloguj</button>
             </div>
         );
     }
@@ -53,7 +70,7 @@ export default function AuthPanel() {
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                className="absolute right-4 top-16 z-20 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700"
+                className={`${embedded ? 'w-full' : 'absolute right-4 top-16 z-20'} rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700`}
             >
                 Zaloguj się
             </button>

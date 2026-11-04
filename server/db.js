@@ -21,4 +21,9 @@ export const Users = sequelize.define('Users', {
         type: DataTypes.STRING,
         allowNull: true,
     },
+    build_slots: {
+        type: DataTypes.JSON,
+        allowNull: false,
+        defaultValue: [],
+    }
 });
