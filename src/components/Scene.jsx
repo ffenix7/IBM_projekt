@@ -377,6 +377,13 @@ export default function Scene() {
             <Loader />  {/* pasek postępu */}
             <AuthPanel />
 
+            <button
+                onClick={() => window.location.href = '/admin'}
+                className="absolute right-4 top-28 z-20 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700"
+            >
+                Panel Admina
+            </button>
+
             {isFocused && (
                 <button
                     onClick={handleResetView}

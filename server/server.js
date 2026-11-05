@@ -56,8 +56,20 @@ app.post('/api/logout', (req, res) => {
 
 try {
     await sequelize.authenticate();
-    await sequelize.sync({force: true});
+    await sequelize.sync({ force: true });
     app.listen(3001, () => console.log('Serwer działa na porcie 3001'));
 } catch (err) {
     console.error('Nie można połączyć z bazą:', err.message);
 }
+
+app.get('/api/users', async (req, res) => {
+    try {
+        const users = await Users.findAll({
+            attributes: ['id', 'name', 'email', 'createdAt']
+        });
+        res.json(users);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});

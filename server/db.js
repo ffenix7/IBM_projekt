@@ -1,6 +1,6 @@
 import { Sequelize, DataTypes } from 'sequelize';
 
-export const sequelize = new Sequelize('TorqueGarage', 'postgres', 'root', {
+export const sequelize = new Sequelize('TorqueGarage', 'postgres', 'rootpg', {
     host: 'localhost',
     port: 5432,
     dialect: 'postgres',
