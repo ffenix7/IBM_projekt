@@ -231,6 +231,7 @@ export default function Scene() {
     const [activeSlot, setActiveSlot] = useState(1);
     const [buildSlots, setBuildSlots] = useState([]);
     const [isBuildsLoading, setIsBuildsLoading] = useState(false);
+    const [saveMessage, setSaveMessage] = useState('');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem('token')));
 
@@ -436,13 +437,13 @@ export default function Scene() {
     const activePartData = PARTS.find((part) => part.id === activePart);
 
     const saveBuild = async () => {
-        console.log('Kliknięto "Zapisz build"');
         if (!localStorage.getItem('token')) {
-            console.error('Zaloguj się, aby zapisać build.');
+            setSaveMessage('Zaloguj się, aby zapisać build.');
             return;
         }
 
         try {
+            setSaveMessage('Zapisywanie...');
             const result = await post('/api/saveBuild', {
                 slot: activeSlot,
                 config: {
@@ -458,9 +459,10 @@ export default function Scene() {
                     ? { ...slot, hasBuild: true, updatedAt: result.slot.updatedAt }
                     : slot
             )));
-            console.log(result);
+            setSaveMessage(`Build ${activeSlot} zapisany.`);
         } catch (error) {
             console.error('Nie udało się zapisać buildu:', error.message);
+            setSaveMessage(error.message);
         }
     };
     return (
@@ -499,6 +501,9 @@ export default function Scene() {
                                 >
                                     Zapisz build {activeSlot}
                                 </button>
+                                {saveMessage && (
+                                    <p className="text-xs text-white/70">{saveMessage}</p>
+                                )}
                                 <div>
                                     <p className="mb-2 text-xs text-white/60">Wybierz build</p>
                                     <div className="grid grid-cols-3 gap-1">

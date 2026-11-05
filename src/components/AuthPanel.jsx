@@ -1,5 +1,38 @@
 import { useState } from 'react';
 
+function storedUser() {
+    try {
+        const value = localStorage.getItem('user');
+        return value ? JSON.parse(value) : null;
+    } catch {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        return null;
+    }
+}
+
+async function responseData(res) {
+    const text = await res.text();
+    let data = {};
+    if (text) {
+        try {
+            data = JSON.parse(text);
+        } catch {
+            data = { error: text };
+        }
+    }
+
+    if (!res.ok) {
+        if (res.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.dispatchEvent(new Event('auth-changed'));
+        }
+        throw new Error(data.error || `Błąd serwera (${res.status})`);
+    }
+    return data;
+}
+
 export async function post(url, body) {
     const token = localStorage.getItem('token');
     const res = await fetch(url, {
@@ -10,10 +43,7 @@ export async function post(url, body) {
         },
         body: JSON.stringify(body),
     });
-    const text = await res.text();
-    const data = text ? JSON.parse(text) : {};
-    if (!res.ok) throw new Error(data.error || `Błąd serwera (${res.status})`);
-    return data;
+    return responseData(res);
 }
 
 export async function get(url) {
@@ -21,14 +51,11 @@ export async function get(url) {
     const res = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
-    const text = await res.text();
-    const data = text ? JSON.parse(text) : {};
-    if (!res.ok) throw new Error(data.error || `Błąd serwera (${res.status})`);
-    return data;
+    return responseData(res);
 }
 
 export function AuthPanel({ embedded = false }) {
-    const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user')));
+    const [user, setUser] = useState(storedUser);
     const [isOpen, setIsOpen] = useState(false);
     const [mode, setMode] = useState('login');
     const [form, setForm] = useState({ email: '', password: '', name: '' });
@@ -52,7 +79,8 @@ export function AuthPanel({ embedded = false }) {
     };
 
     const logout = async () => {
-        localStorage.clear();
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         setUser(null);
         window.dispatchEvent(new Event('auth-changed'));
     };
