@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment } from '@react-three/drei';
+import { OrbitControls, Environment, ContactShadows, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
 import { Suspense, useState, useRef, useEffect } from 'react';
 import { Loader } from './AssetLoader';
@@ -513,9 +513,8 @@ export default function Scene() {
                                                 type="button"
                                                 onClick={() => loadBuildSlot(slot)}
                                                 disabled={isBuildsLoading}
-                                                className={`rounded px-2 py-1 text-xs ${
-                                                    activeSlot === slot ? 'bg-sky-600' : 'bg-white/20 hover:bg-white/30'
-                                                }`}
+                                                className={`rounded px-2 py-1 text-xs ${activeSlot === slot ? 'bg-sky-600' : 'bg-white/20 hover:bg-white/30'
+                                                    }`}
                                             >
                                                 {slot}{buildSlots.find((item) => item.slot === slot)?.hasBuild ? ' •' : ''}
                                             </button>
@@ -587,8 +586,10 @@ export default function Scene() {
                     }}
                 />
 
-                <color attach="background" args={['#050508']} />
-                <fog attach="fog" args={['#050508', 14, 32]} />
+                <hemisphereLight args={['#bcd4ff', '#1a1a22', 0.6]} />
+
+                <color attach="background" args={['#0a0a10']} />
+                <fog attach="fog" args={['#050508', 18, 40]} />
 
                 <directionalLight
                     position={[0, 8, 4]}
@@ -619,7 +620,11 @@ export default function Scene() {
                 <spotLight position={[5, 7, 3]} angle={0.6} penumbra={0.7} intensity={60} color="#f43f5e" />
                 <spotLight position={[0, 7, -5]} angle={0.8} penumbra={0.9} intensity={30} color="#a855f7" />
 
-                <Garage />
+                <Suspense fallback={null}>
+                    <Garage />
+                </Suspense>
+
+                <ContactShadows position={[0, 0.01, 0]} opacity={0.6} scale={12} blur={2.5} far={2.5} />
 
                 <Suspense fallback={null}>
                     <CarModel
@@ -639,7 +644,17 @@ export default function Scene() {
                     )}
                 </Suspense>
 
-                <Environment preset="city" blur={0.5} />
+                <Environment resolution={256}>
+                    <color attach="background" args={['#000']} />
+                    <Lightformer form="rect" intensity={5} position={[0, 6, 0]} rotation-x={Math.PI / 2} scale={[14, 4, 1]} />
+                    <Lightformer form="rect" intensity={3} color="#38bdf8" position={[-8, 3, 0]} rotation-y={Math.PI / 2} scale={[12, 4, 1]} />
+                    <Lightformer form="rect" intensity={3} color="#f43f5e" position={[8, 3, 0]} rotation-y={-Math.PI / 2} scale={[12, 4, 1]} />
+                    <Lightformer form="rect" intensity={2} position={[0, 3, -8]} scale={[12, 4, 1]} />
+                    <Lightformer form="rect" intensity={4} position={[-9, 1.5, 0]} rotation-y={Math.PI / 2} scale={[14, 2, 1]} />
+                    <Lightformer form="rect" intensity={4} position={[9, 1.5, 0]} rotation-y={-Math.PI / 2} scale={[14, 2, 1]} />
+                    <Lightformer form="rect" intensity={3} position={[0, 1.5, 9]} rotation-y={Math.PI} scale={[14, 2, 1]} />
+                    <Lightformer form="rect" intensity={3} position={[0, 1.5, -9]} scale={[14, 2, 1]} />
+                </Environment>
 
                 <OrbitControls
                     ref={controlsRef}
