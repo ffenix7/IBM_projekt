@@ -1,4 +1,4 @@
-import { Suspense, memo, useLayoutEffect } from "react";
+import { Suspense, memo, useEffect, useLayoutEffect } from "react";
 import { Clone, useGLTF, useTexture } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
@@ -21,15 +21,20 @@ const WALLS = [
     { position: [HALF, HEIGHT / 2, 0], rotation: [0, -Math.PI / 2, 0] },
 ];
 
-// Background props (garage-local coordinates, the group below is already rotated).
-// Keep them ~9-11.5 m from the centre so the camera (max distance 8) never clips them.
-// Rotation Y: 0 faces +z (back wall), PI/2 faces +x (left wall), -PI/2 faces -x (right wall).
-// Add your own .glb files to /public/models and uncomment. A missing file will throw.
 const PROPS = [
-    // { url: "/models/toolbox.glb",    position: [-10.5, 0, -6],   rotation: [0, Math.PI / 2, 0], scale: 1 },
-    // { url: "/models/tire_stack.glb", position: [-9.5, 0, -10.5], rotation: [0, 0.4, 0],         scale: 1 },
-    // { url: "/models/shelf.glb",      position: [0, 0, -11.5],    rotation: [0, 0, 0],           scale: 1 },
-    // { url: "/models/workbench.glb",  position: [10.5, 0, 4],     rotation: [0, -Math.PI / 2, 0], scale: 1 },
+    { url: "/models/desk.glb", position: [10, 0, -3], rotation: [0, 0, 0], scale: 2.5 },
+    { url: "/models/cork.glb", position: [12, 3, 0], rotation: [0, Math.PI * 3 / 2, 0], scale: 6 },
+    { url: "/models/toolbox.glb", position: [9.5, 2, -3], rotation: [0, 0.3, 0], scale: 4 },
+    { url: "/models/toolbox.glb", position: [-9.5, 0, 8], rotation: [0, 2, 0], scale: 4 },
+    { url: "/models/barrel.glb", position: [-10.5, 0, -8], rotation: [0, 0, 0], scale: 10 },
+    { url: "/models/barrel.glb", position: [-10, 0, -5], rotation: [0, 2, 0], scale: 10 },
+    { url: "/models/barrel.glb", position: [-8.7, 0, -7], rotation: [0, 5, 0], scale: 10 },
+    { url: "/models/barrel.glb", position: [10, 0, 7], rotation: [0, 0.8, 0], scale: 10 },
+    { url: "/models/cone.glb", position: [10, 0.4, 2], rotation: [0, 0, 0], scale: 5 },
+    { url: "/models/cone.glb", position: [10, 0.4, 4], rotation: [0, 0.5, 0], scale: 5 },
+    { url: "/models/cone.glb", position: [9, 0.4, 3], rotation: [0, 0.5, 0], scale: 5 },
+    { url: "/models/ladder.glb", position: [7, 0, -10], rotation: [0, 0.5, 0], scale: 3 },
+    { url: "/models/shelf.glb", position: [7, 0, 11], rotation: [0, 0, 0], scale: 1.5 }
 ];
 
 function usePbrTextures(path, repeat) {
@@ -57,7 +62,22 @@ function usePbrTextures(path, repeat) {
 
 function Prop({ url, ...transform }) {
     const { scene } = useGLTF(url);
-    return <Clone object={scene} castShadow receiveShadow {...transform} />;
+
+    // Dev only: log triangle count so you can spot heavy models (aim for a few thousand per prop)
+    useEffect(() => {
+        if (process.env.NODE_ENV === "production") return;
+        let tris = 0;
+        scene.traverse((o) => {
+            if (o.isMesh) {
+                const g = o.geometry;
+                tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+            }
+        });
+        console.log(`[Garage] ${url}: ${Math.round(tris)} triangles`);
+    }, [scene, url]);
+
+    // Props sit outside the shadow cameras, so shadows would only cost performance
+    return <Clone object={scene} castShadow={false} receiveShadow={false} {...transform} />;
 }
 
 function CeilingStrips() {
@@ -92,6 +112,11 @@ export const Garage = memo(function Garage() {
                 <meshStandardMaterial color="#0b0b10" roughness={0.9} />
             </mesh>
             <CeilingStrips />
+
+            {/* Corner lights so the walls are actually lit */}
+            {[[-9, 5.5, -9], [9, 5.5, -9], [-9, 5.5, 9], [9, 5.5, 9]].map((position, i) => (
+                <pointLight key={i} position={position} intensity={90} distance={26} color="#ffe2c0" />
+            ))}
 
             <Suspense fallback={null}>
                 {PROPS.map(({ url, ...transform }, i) => (

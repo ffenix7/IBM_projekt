@@ -645,6 +645,10 @@ export default function Scene() {
                     <Lightformer form="rect" intensity={3} color="#38bdf8" position={[-8, 3, 0]} rotation-y={Math.PI / 2} scale={[12, 4, 1]} />
                     <Lightformer form="rect" intensity={3} color="#f43f5e" position={[8, 3, 0]} rotation-y={-Math.PI / 2} scale={[12, 4, 1]} />
                     <Lightformer form="rect" intensity={2} position={[0, 3, -8]} scale={[12, 4, 1]} />
+                    <Lightformer form="rect" intensity={4} position={[-9, 1.5, 0]} rotation-y={Math.PI / 2} scale={[14, 2, 1]} />
+                    <Lightformer form="rect" intensity={4} position={[9, 1.5, 0]} rotation-y={-Math.PI / 2} scale={[14, 2, 1]} />
+                    <Lightformer form="rect" intensity={3} position={[0, 1.5, 9]} rotation-y={Math.PI} scale={[14, 2, 1]} />
+                    <Lightformer form="rect" intensity={3} position={[0, 1.5, -9]} scale={[14, 2, 1]} />
                 </Environment>
 
                 <OrbitControls
