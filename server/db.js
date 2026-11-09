@@ -1,10 +1,17 @@
 import { Sequelize, DataTypes } from 'sequelize';
 
-export const sequelize = new Sequelize('TorqueGarage', 'postgres', 'root', {
-    host: 'localhost',
-    port: 5432,
+const connectionString = process.env.DB_URL || 'postgres://postgres:root@localhost:5432/TorqueGarage';
+
+export const sequelize = new Sequelize(connectionString, {
     dialect: 'postgres',
     logging: false,
+    dialectOptions: {
+        // Render wymaga SSL dla połączeń z bazą danych
+        ssl: process.env.NODE_ENV === 'production' ? {
+            require: true,
+            rejectUnauthorized: false,
+        } : false,
+    },
 });
 
 export const Users = sequelize.define('Users', {
