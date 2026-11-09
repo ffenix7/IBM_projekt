@@ -4,6 +4,15 @@ import jwt from 'jsonwebtoken';
 import { sequelize, Users } from './db.js';
 
 const app = express();
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+    next();
+});
 app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'development-secret-change-me';
