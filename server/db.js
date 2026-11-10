@@ -30,5 +30,10 @@ export const Users = sequelize.define('Users', {
         type: DataTypes.JSON,
         allowNull: false,
         defaultValue: [],
+    },
+    isAdmin: {
+        tyoe: DataTypes.BOOLEAN,
+        allowNull: false,
+        default: false
     }
 });

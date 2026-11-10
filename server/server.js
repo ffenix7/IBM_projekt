@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { sequelize, Users } from './db.js';
+import fs from 'node:fs/promises';
 
 const app = express();
 app.use(express.json());
@@ -31,6 +32,18 @@ const CATALOG = {
         { value: 'Spoiler2', tier: 'free' },
     ]
 };
+
+const CATALOG_FILE = new URL('catalog.json', import.meta.url);
+const TIERS = ['free', 'vip'];
+
+try {
+    Object.assign(CATALOG, JSON.parse(await fs.readFile(CATALOG_FILE, 'utf-8')));
+} catch {
+
+}
+
+const saveCatalog = () => fs.writeFile(CATALOG_FILE, JSON.stringify(CATALOG, null, 2));
+
 
 function createToken(user) {
     return jwt.sign(
@@ -62,6 +75,13 @@ async function requireAuth(req, res, next) {
     } catch {
         return res.status(401).json({ error: 'Nieprawidłowy lub wygasły token.' });
     }
+}
+
+function requireAdmin(req, res, next) {
+    if (!req.user?.isAdmin) {
+        return res.status(403).json({ error: 'Brak uprawnień administratora.' });
+    }
+    next();
 }
 
 app.post('/api/register', async (req, res) => {
@@ -123,6 +143,118 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/catalog', (req, res) => {
     res.json(CATALOG);
+});
+
+app.patch('/api/catalog/item', requireAdmin, async (req, res) => {
+    try {
+        const { category, value, tier, newValue } = req.body;
+
+        const items = CATALOG[category];
+        if (!Array.isArray(items)) {
+            return res.status(400).json({ error: 'Nieznana kategoria.' });
+        }
+
+        const item = items.find((entry) => entry.value === value);
+        if (!item) {
+            return res.status(404).json({ error: 'Nie znaleziono elementu.' });
+        }
+
+        if (tier !== undefined) {
+            if (!TIERS.includes(tier)) {
+                return res.status(400).json({ error: 'Tier musi być "free" lub "vip".' });
+            }
+            item.tier = tier;
+        }
+
+        if (newValue !== undefined && newValue.toLowerCase() !== item.value) {
+            if (category !== 'paints') {
+                return res.status(400).json({ error: 'Nazwę można zmienić tylko dla lakierów.' });
+            }
+            if (!/^#[0-9a-f]{6}$/i.test(newValue)) {
+                return res.status(400).json({ error: 'Kolor musi mieć format #rrggbb.' });
+            }
+            const color = newValue.toLowerCase();
+            if (items.some((entry) => entry.value === color)) {
+                return res.status(409).json({ error: 'Taki kolor już istnieje w katalogu.' });
+            }
+            item.value = color;
+        }
+
+        await saveCatalog();
+        res.json({ category, value: item.value, tier: item.tier });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Nie udało się zapisać katalogu.' });
+    }
+});
+
+app.delete('/api/catalog/item', requireAdmin, async (req, res) => {
+    try {
+        const { category, value } = req.body;
+
+        const items = CATALOG[category];
+        if (!Array.isArray(items)) {
+            return res.status(400).json({ error: 'Nieznana kategoria.' });
+        }
+
+        const index = items.findIndex((entry) => entry.value === value);
+        if (index === -1) {
+            return res.status(404).json({ error: 'Nie znaleziono elementu.' });
+        }
+
+        if (items.length === 1) {
+            return res.status(400).json({ error: 'Kategoria musi zawierać co najmniej jeden element.' });
+        }
+
+        items.splice(index, 1);
+        await saveCatalog();
+        res.json({ ok: true, category, value });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Nie udało się usunąć elementu.' });
+    }
+});
+
+app.patch('/api/users/:id', requireAdmin, async (req, res) => {
+    try {
+        const { subscriptionTier } = req.body;
+
+        if (!TIERS.includes(subscriptionTier)) {
+            return res.status(400).json({ error: 'Tier musi być "free" lub "vip".' });
+        }
+
+        const user = await Users.findByPk(req.params.id);
+        if (!user) {
+            return res.status(404).json({ error: 'Nie znaleziono użytkownika.' });
+        }
+        if (user.isAdmin) {
+            return res.status(403).json({ error: 'Nie można modyfikować administratora.' });
+        }
+
+        await user.update({ subscriptionTier });
+        res.json({ id: user.id, subscriptionTier: user.subscriptionTier });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Nie udało się zaktualizować użytkownika.' });
+    }
+});
+
+app.delete('/api/users/:id', requireAdmin, async (req, res) => {
+    try {
+        const user = await Users.findByPk(req.params.id);
+        if (!user) {
+            return res.status(404).json({ error: 'Nie znaleziono użytkownika.' });
+        }
+        if (user.isAdmin) {
+            return res.status(403).json({ error: 'Nie można modyfikować administratora.' });
+        }
+
+        await user.destroy();
+        res.json({ ok: true, id: user.id });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Nie udało się usunąć użytkownika.' });
+    }
 });
 
 app.get('/api/session', requireAuth, (req, res) => {
@@ -199,7 +331,7 @@ app.post('/api/saveBuild', requireAuth, async (req, res) => {
         const spoiler = CATALOG.spoilers.find((item) => item.value === req.body.config.spoiler);
 
         const vipParts = [rim, spoiler].filter((item) => item?.tier === 'vip');
-        
+
         if (vipParts.length && user.subscriptionTier !== 'vip') {
             return res.status(403).json({ error: 'Tylko użytkownik VIP może zapisywać części VIP.' });
         }
@@ -235,7 +367,8 @@ try {
 app.get('/api/users', async (req, res) => {
     try {
         const users = await Users.findAll({
-            attributes: ['id', 'name', 'email', 'createdAt']
+            where: { isAdmin: false },
+            attributes: ['id', 'name', 'email', 'subscriptionTier', 'createdAt']
         });
         res.json(users);
     } catch (err) {
