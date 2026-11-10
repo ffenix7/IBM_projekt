@@ -4,12 +4,12 @@ export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState('catalog');
 
     const [parts, setParts] = useState([
-        { id: 1, name: 'Główny model auta', category: 'car', tier: 'Free', url: './Car.glb' },
-        { id: 2, name: 'Felgi Sportowe (1)', category: 'rims', tier: 'Free', url: './Felgi1.glb' },
-        { id: 3, name: 'Felgi Klasyczne (2)', category: 'rims', tier: 'Free', url: './Felgi2.glb' },
-        { id: 4, name: 'Opony', category: 'tires', tier: 'Free', url: './Opony.glb' },
-        { id: 5, name: 'Spoiler V1', category: 'spoilers', tier: 'Free', url: './Spoiler.glb' },
-        { id: 6, name: 'Spoiler V2', category: 'spoilers', tier: 'Free', url: './Spoiler2.glb' },
+        { id: 1, name: 'Główny model auta', category: 'car', tier: 'Free', url: './compressed/Car.glb' },
+        { id: 2, name: 'Felgi Sportowe (1)', category: 'rims', tier: 'Free', url: './compressed/Felgi1.glb' },
+        { id: 3, name: 'Felgi Klasyczne (2)', category: 'rims', tier: 'Free', url: './compressed/Felgi2.glb' },
+        { id: 4, name: 'Opony', category: 'tires', tier: 'Free', url: './compressed/Opony.glb' },
+        { id: 5, name: 'Spoiler V1', category: 'spoilers', tier: 'Free', url: './compressed/Spoiler.glb' },
+        { id: 6, name: 'Spoiler V2', category: 'spoilers', tier: 'Free', url: './compressed/Spoiler2.glb' },
     ]);
 
     const [users, setUsers] = useState([]);

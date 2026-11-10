@@ -3,15 +3,15 @@ import { memo, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 export const SPOILER_FILES = {
-    Spoiler1: './Spoiler.glb',
-    Spoiler2: './Spoiler2.glb'
+    Spoiler1: '/compressed/Spoiler.glb',
+    Spoiler2: '/compressed/Spoiler2.glb'
 }
 
 export const RIM_FILES = {
-    Felgi1: './Felgi1.glb',
-    Felgi2: './Felgi2.glb',
+    Felgi1: '/compressed/Felgi1.glb',
+    Felgi2: '/compressed/Felgi2.glb',
 };
-const TIRES_FILE = './Opony.glb';
+const TIRES_FILE = '/compressed/Opony.glb';
 
 const MAX_RIM = 22;
 
@@ -248,6 +248,7 @@ export function CarModel({
     );
 }
 
+useGLTF.setDecoderPath('/draco/');
 useGLTF.preload(RIM_FILES.Felgi1);
 useGLTF.preload(RIM_FILES.Felgi2);
 useGLTF.preload(SPOILER_FILES.Spoiler1);
