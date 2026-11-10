@@ -231,3 +231,15 @@ try {
 } catch (err) {
     console.error('Nie można połączyć z bazą:', err.message);
 }
+
+app.get('/api/users', async (req, res) => {
+    try {
+        const users = await Users.findAll({
+            attributes: ['id', 'name', 'email', 'createdAt']
+        });
+        res.json(users);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});

@@ -1,9 +1,15 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Scene from './components/Scene';
+import AdminDashboard from './components/AdminDashboard';
 
 export default function App() {
     return (
-        <main className="relative w-screen h-screen">
-            <Scene />
-        </main>
+        <BrowserRouter>
+            <Routes>
+                <Route path="/" element={<Scene />} />
+
+                <Route path="/admin" element={<AdminDashboard />} />
+            </Routes>
+        </BrowserRouter>
     );
 }
