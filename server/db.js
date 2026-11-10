@@ -21,4 +21,14 @@ export const Users = sequelize.define('Users', {
         type: DataTypes.STRING,
         allowNull: true,
     },
+    subscriptionTier: {
+        type: DataTypes.ENUM('free', 'vip'),
+        allowNull: false,
+        defaultValue: 'free',
+    },
+    build_slots: {
+        type: DataTypes.JSON,
+        allowNull: false,
+        defaultValue: [],
+    }
 });

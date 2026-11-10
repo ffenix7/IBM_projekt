@@ -1,12 +1,12 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment } from '@react-three/drei';
+import { OrbitControls, Environment, ContactShadows, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
 import { Suspense, useState, useRef, useEffect } from 'react';
 import { Loader } from './AssetLoader';
 import { CarModel } from './CarModel';
 import { Garage } from './Garage';
 import { Dots } from './Dots';
-import AuthPanel from './AuthPanel';
+import { AuthPanel, get, post, storedUser } from './AuthPanel';
 
 // Left menu: parts that can be changed
 const PARTS = [
@@ -21,13 +21,13 @@ const PARTS = [
 
 // Bottom menu: available variants
 const RIM_OPTIONS = [
-    { value: 'Felgi1', label: 'Sportowe', icon: './icons/rims/felgi1.png' },
-    { value: 'Felgi2', label: 'Klasyczne', icon: './icons/rims/felgi2.png' },
+    { value: 'Felgi1', label: 'Sportowe', icon: './icons/rims/felgi1.png', tier: 'free' },
+    { value: 'Felgi2', label: 'Klasyczne', icon: './icons/rims/felgi2.png', tier: 'vip' },
 ];
 
 const SPOILER_OPTIONS = [
-    { value: 'Spoiler1', label: 'Klasyczny', icon: './icons/spoilers/spoiler1.png' },
-    { value: 'Spoiler2', label: 'Sportowy', icon: './icons/spoilers/spoiler2.png' },
+    { value: 'Spoiler1', label: 'Klasyczny', icon: './icons/spoilers/spoiler1.png', tier: 'free' },
+    { value: 'Spoiler2', label: 'Sportowy', icon: './icons/spoilers/spoiler2.png', tier: 'free' },
 ];
 
 // Parts changed only by color (part id -> key in the colors state)
@@ -39,7 +39,7 @@ const COLOR_PARTS = {
 const COLOR_PRESETS = [
     '#ffffff', '#101211', '#8a8d91', '#c0210c', '#f97316', '#facc15',
     '#00c946', '#1091b1', '#176193', '#6d28d9', '#db2777',
-];
+].map((value) => ({ value, tier: 'free' }));
 
 // Which menu part opens after clicking a dot on the car
 const DOT_TO_PART = {
@@ -124,19 +124,23 @@ function PartButton({ part, active, onClick }) {
 }
 
 // Bottom menu part
-function OptionTile({ option, active, onClick }) {
+function OptionTile({ option, active, onClick, locked }) {
     return (
         <button
             type="button"
             onClick={onClick}
+            disabled={locked}
             aria-pressed={active}
             className={`flex w-28 shrink-0 cursor-pointer flex-col items-center gap-2 rounded-xl border p-3 text-xs transition
-                ${active
-                    ? 'border-sky-400 bg-sky-400/15 text-sky-300'
-                    : 'border-white/10 bg-white/5 text-white/80 hover:border-white/30 hover:bg-white/10'}`}
+                ${option.tier === 'vip'
+                    ? 'border-amber-400 bg-white/5 text-white/80'
+                    : active
+                        ? 'border-sky-400 bg-sky-400/15 text-sky-300'
+                        : 'border-white/10 bg-white/5 text-white/80 hover:border-white/30 hover:bg-white/10'}
+                ${locked ? 'cursor-not-allowed opacity-75' : ''}`}
         >
             <Icon src={option.icon} label={option.label} className="h-16 w-16" />
-            <span>{option.label}</span>
+            <span>{option.label} {option.tier === 'vip' && <strong className="text-amber-300">VIP</strong>}</span>
         </button>
     );
 }
@@ -146,13 +150,13 @@ function ColorOptions({ value, onChange }) {
         <div className="flex shrink-0 items-center gap-2">
             {COLOR_PRESETS.map((color) => (
                 <button
-                    key={color}
+                    key={color.value}
                     type="button"
-                    onClick={() => onChange(color)}
-                    aria-label={`Kolor ${color}`}
-                    style={{ backgroundColor: color }}
+                    onClick={() => onChange(color.value)}
+                    aria-label={`Kolor ${color.value}`}
+                    style={{ backgroundColor: color.value }}
                     className={`h-10 w-10 shrink-0 cursor-pointer rounded-full border-2 transition
-                        ${value.toLowerCase() === color ? 'border-sky-400 scale-110' : 'border-white/20 hover:border-white/60'}`}
+                        ${value.toLowerCase() === color.value ? 'border-sky-400 scale-110' : 'border-white/20 hover:border-white/60'}`}
                 />
             ))}
             <label className="flex shrink-0 cursor-pointer flex-col items-center gap-1 pl-2 text-xs text-white/70">
@@ -175,6 +179,7 @@ function Divider() {
 // Scene
 export default function Scene() {
     const controlsRef = useRef();
+    const buildCacheRef = useRef(new Map());
 
     const [isIdle, setIsIdle] = useState(false);
     const idleTimerRef = useRef(null);
@@ -227,15 +232,102 @@ export default function Scene() {
     const [selectedRim, setSelectedRim] = useState('Felgi1');
     const [rimSize] = useState(21);
     const [selectedSpoiler, setSelectedSpoiler] = useState('Spoiler2');
+    const [activeSlot, setActiveSlot] = useState(1);
+    const [buildSlots, setBuildSlots] = useState([]);
+    const [isBuildsLoading, setIsBuildsLoading] = useState(false);
+    const [saveMessage, setSaveMessage] = useState('');
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem('token')));
+    const [subscriptionTier, setSubscriptionTier] = useState(() => storedUser()?.subscriptionTier || 'free');
 
     const [activePart, setActivePart] = useState(null); // id from PARTS or null
 
     const [isFocused, setIsFocused] = useState(false);
     const [isShown, setIsShown] = useState(true);
 
+    const refreshSession = async () => {
+        if (!localStorage.getItem('token')) {
+            setSubscriptionTier('free');
+            return;
+        }
+
+        try {
+            const result = await get('/api/session');
+            setSubscriptionTier(result.user.subscriptionTier);
+            localStorage.setItem('user', JSON.stringify(result.user));
+        } catch (error) {
+            console.error('Nie udało się odświeżyć sesji:', error.message);
+        }
+    };
+
     const setColor = (part) => (color) => {
         setColors((current) => ({ ...current, [part]: color }));
     };
+
+    const applyBuild = (config) => {
+        if (!config) return;
+        if (config.rim || config.tire) setSelectedRim(config.rim || config.tire);
+        if (config.spoiler) setSelectedSpoiler(config.spoiler);
+        if (config.registrationText !== undefined) setRegistrationText(config.registrationText);
+        if (config.colors) setColors((current) => ({ ...current, ...config.colors }));
+    };
+
+    const loadBuildSlot = async (slot) => {
+        setActiveSlot(slot);
+        if (!localStorage.getItem('token')) return;
+
+        try {
+            let config = buildCacheRef.current.get(slot);
+            if (config === undefined) {
+                const result = await get(`/api/builds/${slot}`);
+                config = result.config;
+                buildCacheRef.current.set(slot, config);
+            }
+            applyBuild(config);
+        } catch (error) {
+            console.error('Nie udało się załadować buildu:', error.message);
+        }
+    };
+
+    const loadAvailableBuilds = async () => {
+        if (!localStorage.getItem('token')) {
+            buildCacheRef.current.clear();
+            setBuildSlots([]);
+            return;
+        }
+
+        setIsBuildsLoading(true);
+        try {
+            const session = await get('/api/session');
+            setSubscriptionTier(session.user.subscriptionTier);
+            localStorage.setItem('user', JSON.stringify(session.user));
+            const result = await get('/api/builds');
+            setBuildSlots(result.slots);
+            const latest = result.slots
+                .filter((slot) => slot.hasBuild)
+                .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))[0];
+            await loadBuildSlot(latest?.slot || 1);
+        } catch (error) {
+            console.error('Nie udało się pobrać buildów:', error.message);
+        } finally {
+            setIsBuildsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        const handleAuthChanged = () => {
+            setIsAuthenticated(Boolean(localStorage.getItem('token')));
+            setSubscriptionTier(storedUser()?.subscriptionTier || 'free');
+            loadAvailableBuilds();
+        };
+        window.addEventListener('auth-changed', handleAuthChanged);
+        loadAvailableBuilds();
+        return () => window.removeEventListener('auth-changed', handleAuthChanged);
+    }, []);
+
+    useEffect(() => {
+        if (isSettingsOpen) refreshSession();
+    }, [isSettingsOpen]);
 
     // Only moves the camera; never touches activePart
     const focusCamera = (viewId) => {
@@ -323,7 +415,12 @@ export default function Scene() {
                             key={option.value}
                             option={option}
                             active={selectedRim === option.value}
-                            onClick={() => setSelectedRim(option.value)}
+                            locked={option.tier === 'vip' && subscriptionTier !== 'vip'}
+                            onClick={() => {
+                                if (option.tier !== 'vip' || subscriptionTier === 'vip') {
+                                    setSelectedRim(option.value);
+                                }
+                            }}
                         />
                     ))}
                 </>
@@ -372,39 +469,101 @@ export default function Scene() {
 
     const activePartData = PARTS.find((part) => part.id === activePart);
 
+    const saveBuild = async () => {
+        if (!localStorage.getItem('token')) {
+            setSaveMessage('Zaloguj się, aby zapisać build.');
+            return;
+        }
+
+        try {
+            setSaveMessage('Zapisywanie...');
+            const result = await post('/api/saveBuild', {
+                slot: activeSlot,
+                config: {
+                rim: selectedRim,
+                    spoiler: selectedSpoiler,
+                    registrationText,
+                    colors,
+                },
+            });
+            buildCacheRef.current.set(activeSlot, result.slot.config);
+            setBuildSlots((current) => current.map((slot) => (
+                slot.slot === activeSlot
+                    ? { ...slot, hasBuild: true, updatedAt: result.slot.updatedAt }
+                    : slot
+            )));
+            setSaveMessage(`Build ${activeSlot} zapisany.`);
+        } catch (error) {
+            console.error('Nie udało się zapisać buildu:', error.message);
+            setSaveMessage(error.message);
+        }
+    };
     return (
         <div className="w-full h-full relative">
             <Loader />  {/* pasek postępu */}
-            <AuthPanel />
-
-            <button
-                onClick={() => window.location.href = '/admin'}
-                className="absolute right-4 top-28 z-20 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700"
-            >
-                Panel Admina
-            </button>
-
-            {isFocused && (
+            <div className="absolute right-4 top-4 z-20">
                 <button
-                    onClick={handleResetView}
-                    className="absolute right-4 top-4 z-10 bg-white/20 text-white px-4 py-2 rounded-lg text-sm"
+                    type="button"
+                    onClick={() => setIsSettingsOpen((current) => !current)}
+                    aria-label="Ustawienia"
+                    aria-expanded={isSettingsOpen}
+                    className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-black/40 text-white shadow-lg backdrop-blur-md transition hover:border-white/30 hover:bg-white/10"
                 >
-                    Resetuj widok
+                    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.3 2.8h3.4l.5 2.1a7.7 7.7 0 0 1 1.6.9l2-.8 1.7 2.9-1.6 1.5c.1.6.2 1.1.2 1.7s-.1 1.1-.2 1.7l1.6 1.5-1.7 2.9-2-.8a7.7 7.7 0 0 1-1.6.9l-.5 2.1h-3.4l-.5-2.1a7.7 7.7 0 0 1-1.6-.9l-2 .8-1.7-2.9 1.6-1.5a7.7 7.7 0 0 1-.2-1.7c0-.6.1-1.1.2-1.7L4.5 7.9l1.7-2.9 2 .8a7.7 7.7 0 0 1 1.6-.9l.5-2.1Z" />
+                        <circle cx="12" cy="11.1" r="2.7" />
+                    </svg>
                 </button>
-            )}
-            {!isFocused && (
-                <button
-                    onClick={handleDotsView}
-                    className="absolute right-4 top-4 z-10 bg-white/20 text-white px-4 py-2 rounded-lg text-sm"
-                >
-                    {isShown ? 'Schowaj' : 'Pokaż'} kropki
-                </button>
-            )}
+
+                {isSettingsOpen && (
+                    <div className="mt-2 flex w-56 flex-col gap-3 rounded-2xl border border-white/10 bg-black/75 p-3 text-white shadow-xl backdrop-blur-md">
+                        <AuthPanel embedded />
+                        {isAuthenticated && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={handleDotsView}
+                                    className="rounded-lg bg-white/20 px-3 py-2 text-sm hover:bg-white/30"
+                                >
+                                    {isShown ? 'Schowaj kropki' : 'Pokaż kropki'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={saveBuild}
+                                    className="rounded-lg bg-sky-600 px-3 py-2 text-sm hover:bg-sky-500"
+                                >
+                                    Zapisz build {activeSlot}
+                                </button>
+                                {saveMessage && (
+                                    <p className="text-xs text-white/70">{saveMessage}</p>
+                                )}
+                                <div>
+                                    <p className="mb-2 text-xs text-white/60">Wybierz build</p>
+                                    <div className="grid grid-cols-3 gap-1">
+                                        {[1, 2, 3].map((slot) => (
+                                            <button
+                                                key={slot}
+                                                type="button"
+                                                onClick={() => loadBuildSlot(slot)}
+                                                disabled={isBuildsLoading}
+                                                className={`rounded px-2 py-1 text-xs ${activeSlot === slot ? 'bg-sky-600' : 'bg-white/20 hover:bg-white/30'
+                                                    }`}
+                                            >
+                                                {slot}{buildSlots.find((item) => item.slot === slot)?.hasBuild ? ' •' : ''}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {/* Left menu */}
             <nav
                 aria-label="Części samochodu"
-                className="absolute left-4 top-4 z-10 flex max-h-[calc(100%-2rem)] flex-col gap-2 overflow-y-auto"
+                className="absolute left-4 top-20 z-10 flex max-h-[calc(100%-5rem)] flex-col gap-2 overflow-y-auto"
             >
                 {PARTS.map((part) => (
                     <PartButton
@@ -452,8 +611,10 @@ export default function Scene() {
                     }}
                 />
 
-                <color attach="background" args={['#050508']} />
-                <fog attach="fog" args={['#050508', 14, 32]} />
+                <hemisphereLight args={['#bcd4ff', '#1a1a22', 0.6]} />
+
+                <color attach="background" args={['#0a0a10']} />
+                <fog attach="fog" args={['#050508', 18, 40]} />
 
                 <directionalLight
                     position={[0, 8, 4]}
@@ -484,7 +645,11 @@ export default function Scene() {
                 <spotLight position={[5, 7, 3]} angle={0.6} penumbra={0.7} intensity={60} color="#f43f5e" />
                 <spotLight position={[0, 7, -5]} angle={0.8} penumbra={0.9} intensity={30} color="#a855f7" />
 
-                <Garage />
+                <Suspense fallback={null}>
+                    <Garage />
+                </Suspense>
+
+                <ContactShadows position={[0, 0.01, 0]} opacity={0.6} scale={12} blur={2.5} far={2.5} />
 
                 <Suspense fallback={null}>
                     <CarModel
@@ -504,7 +669,17 @@ export default function Scene() {
                     )}
                 </Suspense>
 
-                <Environment preset="city" blur={0.5} />
+                <Environment resolution={256}>
+                    <color attach="background" args={['#000']} />
+                    <Lightformer form="rect" intensity={5} position={[0, 6, 0]} rotation-x={Math.PI / 2} scale={[14, 4, 1]} />
+                    <Lightformer form="rect" intensity={3} color="#38bdf8" position={[-8, 3, 0]} rotation-y={Math.PI / 2} scale={[12, 4, 1]} />
+                    <Lightformer form="rect" intensity={3} color="#f43f5e" position={[8, 3, 0]} rotation-y={-Math.PI / 2} scale={[12, 4, 1]} />
+                    <Lightformer form="rect" intensity={2} position={[0, 3, -8]} scale={[12, 4, 1]} />
+                    <Lightformer form="rect" intensity={4} position={[-9, 1.5, 0]} rotation-y={Math.PI / 2} scale={[14, 2, 1]} />
+                    <Lightformer form="rect" intensity={4} position={[9, 1.5, 0]} rotation-y={-Math.PI / 2} scale={[14, 2, 1]} />
+                    <Lightformer form="rect" intensity={3} position={[0, 1.5, 9]} rotation-y={Math.PI} scale={[14, 2, 1]} />
+                    <Lightformer form="rect" intensity={3} position={[0, 1.5, -9]} scale={[14, 2, 1]} />
+                </Environment>
 
                 <OrbitControls
                     ref={controlsRef}

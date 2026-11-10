@@ -201,6 +201,35 @@ export function CarModel({
         });
     }, [car, bodyColor, tiresColor, chassisColor, spoilerColor, windowsColor, registrationText]);
 
+    function Prop({ url, ...transform }) {
+        const { scene } = useGLTF(url);
+    
+        // Dev only: log triangle count so you can spot heavy models (aim for a few thousand per prop)
+        useEffect(() => {
+            if (process.env.NODE_ENV === "production") return;
+            let tris = 0;
+            scene.traverse((o) => {
+                if (o.isMesh) {
+                    const g = o.geometry;
+                    tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+                }
+            });
+            console.log(`[Garage] ${url}: ${Math.round(tris)} triangles`);
+        }, [scene, url]);
+
+        return <primitive object={scene} {...transform} />;
+        
+    }
+
+    var tris = 0
+    car.traverse((o) => {
+        if (o.isMesh) {
+            const g = o.geometry;
+            tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+        }
+    });
+    console.log(`[Garage] ${url}: ${Math.round(tris)} triangles`);
+
     return (
         <group scale={0.65} position={[0, 0, 0]} rotation={[0, (3 * Math.PI) / 4, 0]}>
             <primitive object={car} />

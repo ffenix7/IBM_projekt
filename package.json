@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/ffenix7/IBM_projekt#readme",
   "dependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
     "@tailwindcss/vite": "^4.3.3",
@@ -39,7 +40,6 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^6.1.2",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.4"
   }
