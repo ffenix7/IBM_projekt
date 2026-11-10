@@ -49,6 +49,10 @@ function createToken(user) {
     );
 }
 
+function hasVipAccess(subscriptionTier) {
+    return String(subscriptionTier || '').trim().toLowerCase() === 'vip';
+}
+
 async function requireAuth(req, res, next) {
     const authorization = req.headers.authorization;
     const token = authorization?.startsWith('Bearer ')
@@ -209,7 +213,7 @@ app.post('/api/saveBuild', requireAuth, async (req, res) => {
 
         const vipParts = [rim, spoiler].filter((item) => item?.tier === 'vip');
         
-        if (vipParts.length && user.subscriptionTier !== 'vip') {
+        if (vipParts.length && !hasVipAccess(user.subscriptionTier)) {
             return res.status(403).json({ error: 'Tylko użytkownik VIP może zapisywać części VIP.' });
         }
 

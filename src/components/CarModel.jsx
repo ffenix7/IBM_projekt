@@ -1,17 +1,17 @@
 import { useGLTF } from '@react-three/drei';
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { memo, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 export const SPOILER_FILES = {
-    Spoiler1: '/Spoiler.glb',
-    Spoiler2: '/Spoiler2.glb'
+    Spoiler1: './Spoiler.glb',
+    Spoiler2: './Spoiler2.glb'
 }
 
 export const RIM_FILES = {
-    Felgi1: '/Felgi1.glb',
-    Felgi2: '/Felgi2.glb',
+    Felgi1: './Felgi1.glb',
+    Felgi2: './Felgi2.glb',
 };
-const TIRES_FILE = '/Opony.glb';
+const TIRES_FILE = './Opony.glb';
 
 const MAX_RIM = 22;
 
@@ -69,76 +69,17 @@ function makeWheelSet(source, { cloneMats = false } = {}) {
     return { scene, pivots: createPivots(scene) };
 }
 
-export function CarModel({
+const CarBody = memo(function CarBody({
     url,
-    selectedRimName = 'Felgi1',
-    selectedSpoilerName = 'Spoiler2',
-    rimSize = 21,
-    bodyColor = '#1091B1',
-    tiresColor = '#000000',
-    chassisColor = '#060606',
-    spoilerColor = '#1091b1',
-    windowsColor = '#101211',
-    registrationText = 'Default',
+    bodyColor,
+    chassisColor,
+    windowsColor,
+    registrationText,
 }) {
     const gltf = useGLTF(url);
     const car = gltf.scene;
     const materials = useRef(new WeakMap());
 
-    const rim1 = useGLTF(RIM_FILES.Felgi1);
-    const rim2 = useGLTF(RIM_FILES.Felgi2);
-    const tires = useGLTF(TIRES_FILE);
-
-    const spoiler1 = useGLTF(SPOILER_FILES.Spoiler1);
-    const spoiler2 = useGLTF(SPOILER_FILES.Spoiler2);
-
-    // Clones of the rims and tires, each wheel wrapped in its own pivot
-    const wheelSets = useMemo(
-        () => ({
-            Felgi1: makeWheelSet(rim1.scene),
-            Felgi2: makeWheelSet(rim2.scene),
-            tires: makeWheelSet(tires.scene, { cloneMats: true }),
-        }),
-        [rim1.scene, rim2.scene, tires.scene]
-    );
-
-    // Parts visibility
-    useLayoutEffect(() => {
-        wheelSets.Felgi1.scene.visible = selectedRimName === 'Felgi1';
-        wheelSets.Felgi2.scene.visible = selectedRimName === 'Felgi2';
-        spoiler1.scene.visible = selectedSpoilerName === 'Spoiler1';
-        spoiler2.scene.visible = selectedSpoilerName === 'Spoiler2';
-    }, [wheelSets, spoiler1, spoiler2, selectedRimName, selectedSpoilerName]);
-
-    useLayoutEffect(() => {
-        const s = rimSize / MAX_RIM;
-        const scale = new THREE.Vector3(s, s, 1);
-
-        Object.values(wheelSets).forEach(({ pivots }) =>
-            pivots.forEach((pivot) => pivot.scale.copy(scale))
-        );
-    }, [wheelSets, rimSize]);
-
-    useLayoutEffect(() => {
-        wheelSets.tires.scene.traverse((child) => {
-            if (child.isMesh) {
-                setMaterialColor(child.material, tiresColor, true);
-            }
-        });
-        spoiler1.scene.traverse((child) =>{
-            if (child.isMesh){
-                setMaterialColor(child.material, spoilerColor, true);
-            }
-        })
-
-        spoiler2.scene.traverse((child) =>{
-            if (child.isMesh){
-                setMaterialColor(child.material, spoilerColor, true);
-            }
-        })
-    }, [wheelSets, tiresColor, spoilerColor]);
-
-    // Colors, window material, registration plate
     useLayoutEffect(() => {
         car.traverse((child) => {
             if (child.isMesh) {
@@ -199,25 +140,110 @@ export function CarModel({
                 }
             }
         });
-    }, [car, bodyColor, tiresColor, chassisColor, spoilerColor, windowsColor, registrationText]);
+    }, [car, bodyColor, chassisColor, windowsColor, registrationText]);
 
-    var tris = 0
-    car.traverse((o) => {
-        if (o.isMesh) {
-            const g = o.geometry;
-            tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
-        }
-    });
-    console.log(`[Garage] ${url}: ${Math.round(tris)} triangles`);
+    return <primitive object={car} />;
+});
+
+const Wheels = memo(function Wheels({ selectedRimName, rimSize, tiresColor }) {
+    const rim1 = useGLTF(RIM_FILES.Felgi1);
+    const rim2 = useGLTF(RIM_FILES.Felgi2);
+    const tires = useGLTF(TIRES_FILE);
+
+    const wheelSets = useMemo(
+        () => ({
+            Felgi1: makeWheelSet(rim1.scene),
+            Felgi2: makeWheelSet(rim2.scene),
+            tires: makeWheelSet(tires.scene, { cloneMats: true }),
+        }),
+        [rim1.scene, rim2.scene, tires.scene]
+    );
+
+    useLayoutEffect(() => {
+        wheelSets.Felgi1.scene.visible = selectedRimName === 'Felgi1';
+        wheelSets.Felgi2.scene.visible = selectedRimName === 'Felgi2';
+    }, [wheelSets, selectedRimName]);
+
+    useLayoutEffect(() => {
+        const s = rimSize / MAX_RIM;
+        const scale = new THREE.Vector3(s, s, 1);
+
+        Object.values(wheelSets).forEach(({ pivots }) =>
+            pivots.forEach((pivot) => pivot.scale.copy(scale))
+        );
+    }, [wheelSets, rimSize]);
+
+    useLayoutEffect(() => {
+        wheelSets.tires.scene.traverse((child) => {
+            if (child.isMesh) {
+                setMaterialColor(child.material, tiresColor, true);
+            }
+        });
+    }, [wheelSets, tiresColor]);
 
     return (
-        <group scale={0.65} position={[0, 0, 0]} rotation={[0, (3 * Math.PI) / 4, 0]}>
-            <primitive object={car} />
+        <>
             <primitive object={wheelSets.Felgi1.scene} />
             <primitive object={wheelSets.Felgi2.scene} />
             <primitive object={wheelSets.tires.scene} />
+        </>
+    );
+});
+
+const Spoilers = memo(function Spoilers({ selectedSpoilerName, spoilerColor }) {
+    const spoiler1 = useGLTF(SPOILER_FILES.Spoiler1);
+    const spoiler2 = useGLTF(SPOILER_FILES.Spoiler2);
+
+    useLayoutEffect(() => {
+        spoiler1.scene.visible = selectedSpoilerName === 'Spoiler1';
+        spoiler2.scene.visible = selectedSpoilerName === 'Spoiler2';
+    }, [spoiler1, spoiler2, selectedSpoilerName]);
+
+    useLayoutEffect(() => {
+        [spoiler1.scene, spoiler2.scene].forEach((scene) => {
+            scene.traverse((child) => {
+                if (child.isMesh) {
+                    setMaterialColor(child.material, spoilerColor, true);
+                }
+            });
+        });
+    }, [spoiler1, spoiler2, spoilerColor]);
+
+    return (
+        <>
             <primitive object={spoiler1.scene} />
             <primitive object={spoiler2.scene} />
+        </>
+    );
+});
+
+export function CarModel({
+    url,
+    selectedRimName = 'Felgi1',
+    selectedSpoilerName = 'Spoiler2',
+    rimSize = 21,
+    bodyColor = '#1091B1',
+    tiresColor = '#000000',
+    chassisColor = '#060606',
+    spoilerColor = '#1091b1',
+    windowsColor = '#101211',
+    registrationText = 'Default',
+}) {
+    return (
+        <group scale={0.65} position={[0, 0, 0]} rotation={[0, (3 * Math.PI) / 4, 0]}>
+            <CarBody
+                url={url}
+                bodyColor={bodyColor}
+                chassisColor={chassisColor}
+                windowsColor={windowsColor}
+                registrationText={registrationText}
+            />
+            <Wheels
+                selectedRimName={selectedRimName}
+                rimSize={rimSize}
+                tiresColor={tiresColor}
+            />
+            <Spoilers selectedSpoilerName={selectedSpoilerName} spoilerColor={spoilerColor} />
         </group>
     );
 }

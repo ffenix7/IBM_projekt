@@ -41,6 +41,10 @@ const COLOR_PRESETS = [
     '#00c946', '#1091b1', '#176193', '#6d28d9', '#db2777',
 ].map((value) => ({ value, tier: 'free' }));
 
+function hasVipAccess(subscriptionTier) {
+    return String(subscriptionTier || '').trim().toLowerCase() === 'vip';
+}
+
 // Which menu part opens after clicking a dot on the car
 const DOT_TO_PART = {
     'rear-wheel': 'rims',
@@ -415,9 +419,9 @@ export default function Scene() {
                             key={option.value}
                             option={option}
                             active={selectedRim === option.value}
-                            locked={option.tier === 'vip' && subscriptionTier !== 'vip'}
+                            locked={option.tier === 'vip' && !hasVipAccess(subscriptionTier)}
                             onClick={() => {
-                                if (option.tier !== 'vip' || subscriptionTier === 'vip') {
+                                if (option.tier !== 'vip' || hasVipAccess(subscriptionTier)) {
                                     setSelectedRim(option.value);
                                 }
                             }}
