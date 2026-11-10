@@ -653,7 +653,7 @@ export default function Scene() {
 
                 <Suspense fallback={null}>
                     <CarModel
-                        url="./Car.glb"
+                        url="/Car.glb"
                         selectedRimName={selectedRim}
                         selectedSpoilerName={selectedSpoiler}
                         rimSize={rimSize}

@@ -3,15 +3,15 @@ import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 export const SPOILER_FILES = {
-    Spoiler1: './Spoiler.glb',
-    Spoiler2: './Spoiler2.glb'
+    Spoiler1: '/Spoiler.glb',
+    Spoiler2: '/Spoiler2.glb'
 }
 
 export const RIM_FILES = {
-    Felgi1: './Felgi1.glb',
-    Felgi2: './Felgi2.glb',
+    Felgi1: '/Felgi1.glb',
+    Felgi2: '/Felgi2.glb',
 };
-const TIRES_FILE = './Opony.glb';
+const TIRES_FILE = '/Opony.glb';
 
 const MAX_RIM = 22;
 
