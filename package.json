@@ -40,10 +40,10 @@
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.5",
     "sequelize": "^6.37.8",
-    "three": "^0.186.1"
+    "three": "^0.186.1",
+    "@gltf-transform/cli": "^4.5.1"
   },
   "devDependencies": {
-    "@gltf-transform/cli": "^4.5.1",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.4"
   }
