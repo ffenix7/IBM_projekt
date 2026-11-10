@@ -5,7 +5,7 @@ const API_BASE_URL = import.meta.env.PROD
     ? 'https://ibm-projekt-backend.onrender.com'
     : '';
 
-function storedUser() {
+export function storedUser() {
     try {
         const value = localStorage.getItem('user');
         return value ? JSON.parse(value) : null;
