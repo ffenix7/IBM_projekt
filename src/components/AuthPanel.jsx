@@ -93,7 +93,7 @@ export function AuthPanel({ embedded = false }) {
     if (user) {
         return (
             <div className={`rounded-lg bg-slate-900 p-2 text-white ${embedded ? '' : 'absolute right-4 top-16 z-20'}`}>
-                <span>{user.name || user.email}</span><br/>
+                <span>{user.name || user.email} {user.subscriptionTier === 'vip' && <strong className="text-amber-300">VIP</strong>}</span><br/>
                 <button type="button" onClick={logout} className="text-white/70 hover:text-white cursor-pointer">Wyloguj</button>
             </div>
         );

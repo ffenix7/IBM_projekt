@@ -6,7 +6,7 @@ import { Loader } from './AssetLoader';
 import { CarModel } from './CarModel';
 import { Garage } from './Garage';
 import { Dots } from './Dots';
-import { AuthPanel, get, post } from './AuthPanel';
+import { AuthPanel, get, post, storedUser } from './AuthPanel';
 
 // Left menu: parts that can be changed
 const PARTS = [
@@ -21,13 +21,13 @@ const PARTS = [
 
 // Bottom menu: available variants
 const RIM_OPTIONS = [
-    { value: 'Felgi1', label: 'Sportowe', icon: './icons/rims/felgi1.png' },
-    { value: 'Felgi2', label: 'Klasyczne', icon: './icons/rims/felgi2.png' },
+    { value: 'Felgi1', label: 'Sportowe', icon: './icons/rims/felgi1.png', tier: 'free' },
+    { value: 'Felgi2', label: 'Klasyczne', icon: './icons/rims/felgi2.png', tier: 'vip' },
 ];
 
 const SPOILER_OPTIONS = [
-    { value: 'Spoiler1', label: 'Klasyczny', icon: './icons/spoilers/spoiler1.png' },
-    { value: 'Spoiler2', label: 'Sportowy', icon: './icons/spoilers/spoiler2.png' },
+    { value: 'Spoiler1', label: 'Klasyczny', icon: './icons/spoilers/spoiler1.png', tier: 'free' },
+    { value: 'Spoiler2', label: 'Sportowy', icon: './icons/spoilers/spoiler2.png', tier: 'free' },
 ];
 
 // Parts changed only by color (part id -> key in the colors state)
@@ -39,7 +39,7 @@ const COLOR_PARTS = {
 const COLOR_PRESETS = [
     '#ffffff', '#101211', '#8a8d91', '#c0210c', '#f97316', '#facc15',
     '#00c946', '#1091b1', '#176193', '#6d28d9', '#db2777',
-];
+].map((value) => ({ value, tier: 'free' }));
 
 // Which menu part opens after clicking a dot on the car
 const DOT_TO_PART = {
@@ -124,19 +124,23 @@ function PartButton({ part, active, onClick }) {
 }
 
 // Bottom menu part
-function OptionTile({ option, active, onClick }) {
+function OptionTile({ option, active, onClick, locked }) {
     return (
         <button
             type="button"
             onClick={onClick}
+            disabled={locked}
             aria-pressed={active}
             className={`flex w-28 shrink-0 cursor-pointer flex-col items-center gap-2 rounded-xl border p-3 text-xs transition
-                ${active
-                    ? 'border-sky-400 bg-sky-400/15 text-sky-300'
-                    : 'border-white/10 bg-white/5 text-white/80 hover:border-white/30 hover:bg-white/10'}`}
+                ${option.tier === 'vip'
+                    ? 'border-amber-400 bg-white/5 text-white/80'
+                    : active
+                        ? 'border-sky-400 bg-sky-400/15 text-sky-300'
+                        : 'border-white/10 bg-white/5 text-white/80 hover:border-white/30 hover:bg-white/10'}
+                ${locked ? 'cursor-not-allowed opacity-75' : ''}`}
         >
             <Icon src={option.icon} label={option.label} className="h-16 w-16" />
-            <span>{option.label}</span>
+            <span>{option.label} {option.tier === 'vip' && <strong className="text-amber-300">VIP</strong>}</span>
         </button>
     );
 }
@@ -146,13 +150,13 @@ function ColorOptions({ value, onChange }) {
         <div className="flex shrink-0 items-center gap-2">
             {COLOR_PRESETS.map((color) => (
                 <button
-                    key={color}
+                    key={color.value}
                     type="button"
-                    onClick={() => onChange(color)}
-                    aria-label={`Kolor ${color}`}
-                    style={{ backgroundColor: color }}
+                    onClick={() => onChange(color.value)}
+                    aria-label={`Kolor ${color.value}`}
+                    style={{ backgroundColor: color.value }}
                     className={`h-10 w-10 shrink-0 cursor-pointer rounded-full border-2 transition
-                        ${value.toLowerCase() === color ? 'border-sky-400 scale-110' : 'border-white/20 hover:border-white/60'}`}
+                        ${value.toLowerCase() === color.value ? 'border-sky-400 scale-110' : 'border-white/20 hover:border-white/60'}`}
                 />
             ))}
             <label className="flex shrink-0 cursor-pointer flex-col items-center gap-1 pl-2 text-xs text-white/70">
@@ -234,11 +238,27 @@ export default function Scene() {
     const [saveMessage, setSaveMessage] = useState('');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem('token')));
+    const [subscriptionTier, setSubscriptionTier] = useState(() => storedUser()?.subscriptionTier || 'free');
 
     const [activePart, setActivePart] = useState(null); // id from PARTS or null
 
     const [isFocused, setIsFocused] = useState(false);
     const [isShown, setIsShown] = useState(true);
+
+    const refreshSession = async () => {
+        if (!localStorage.getItem('token')) {
+            setSubscriptionTier('free');
+            return;
+        }
+
+        try {
+            const result = await get('/api/session');
+            setSubscriptionTier(result.user.subscriptionTier);
+            localStorage.setItem('user', JSON.stringify(result.user));
+        } catch (error) {
+            console.error('Nie udało się odświeżyć sesji:', error.message);
+        }
+    };
 
     const setColor = (part) => (color) => {
         setColors((current) => ({ ...current, [part]: color }));
@@ -246,7 +266,7 @@ export default function Scene() {
 
     const applyBuild = (config) => {
         if (!config) return;
-        if (config.tire) setSelectedRim(config.tire);
+        if (config.rim || config.tire) setSelectedRim(config.rim || config.tire);
         if (config.spoiler) setSelectedSpoiler(config.spoiler);
         if (config.registrationText !== undefined) setRegistrationText(config.registrationText);
         if (config.colors) setColors((current) => ({ ...current, ...config.colors }));
@@ -278,6 +298,9 @@ export default function Scene() {
 
         setIsBuildsLoading(true);
         try {
+            const session = await get('/api/session');
+            setSubscriptionTier(session.user.subscriptionTier);
+            localStorage.setItem('user', JSON.stringify(session.user));
             const result = await get('/api/builds');
             setBuildSlots(result.slots);
             const latest = result.slots
@@ -294,12 +317,17 @@ export default function Scene() {
     useEffect(() => {
         const handleAuthChanged = () => {
             setIsAuthenticated(Boolean(localStorage.getItem('token')));
+            setSubscriptionTier(storedUser()?.subscriptionTier || 'free');
             loadAvailableBuilds();
         };
         window.addEventListener('auth-changed', handleAuthChanged);
         loadAvailableBuilds();
         return () => window.removeEventListener('auth-changed', handleAuthChanged);
     }, []);
+
+    useEffect(() => {
+        if (isSettingsOpen) refreshSession();
+    }, [isSettingsOpen]);
 
     // Only moves the camera; never touches activePart
     const focusCamera = (viewId) => {
@@ -387,7 +415,12 @@ export default function Scene() {
                             key={option.value}
                             option={option}
                             active={selectedRim === option.value}
-                            onClick={() => setSelectedRim(option.value)}
+                            locked={option.tier === 'vip' && subscriptionTier !== 'vip'}
+                            onClick={() => {
+                                if (option.tier !== 'vip' || subscriptionTier === 'vip') {
+                                    setSelectedRim(option.value);
+                                }
+                            }}
                         />
                     ))}
                 </>
@@ -447,7 +480,7 @@ export default function Scene() {
             const result = await post('/api/saveBuild', {
                 slot: activeSlot,
                 config: {
-                    tire: selectedRim,
+                rim: selectedRim,
                     spoiler: selectedSpoiler,
                     registrationText,
                     colors,

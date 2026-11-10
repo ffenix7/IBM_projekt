@@ -17,16 +17,39 @@ app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'development-secret-change-me';
 const BUILD_SLOT_COUNT = 3;
+const CATALOG = {
+    paints: [
+        { value: '#ffffff', tier: 'free' },
+        { value: '#101211', tier: 'free' },
+        { value: '#8a8d91', tier: 'free' },
+        { value: '#c0210c', tier: 'free' },
+        { value: '#f97316', tier: 'free' },
+        { value: '#facc15', tier: 'free' },
+        { value: '#00c946', tier: 'free' },
+        { value: '#1091b1', tier: 'free' },
+        { value: '#176193', tier: 'free' },
+        { value: '#6d28d9', tier: 'free' },
+        { value: '#db2777', tier: 'free' },
+    ],
+    rims: [
+        { value: 'Felgi1', tier: 'free' },
+        { value: 'Felgi2', tier: 'vip' },
+    ],
+    spoilers: [
+        { value: 'Spoiler1', tier: 'free' },
+        { value: 'Spoiler2', tier: 'free' },
+    ]
+};
 
 function createToken(user) {
     return jwt.sign(
-        { sub: user.id, email: user.email, name: user.name },
+        { sub: user.id, email: user.email, name: user.name, subscriptionTier: user.subscriptionTier },
         JWT_SECRET,
         { expiresIn: '1h' },
     );
 }
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
     const authorization = req.headers.authorization;
     const token = authorization?.startsWith('Bearer ')
         ? authorization.slice('Bearer '.length)
@@ -38,7 +61,12 @@ function requireAuth(req, res, next) {
 
     try {
         const payload = jwt.verify(token, JWT_SECRET);
-        req.userId = payload.sub;
+        const user = await Users.findByPk(payload.sub);
+        if (!user) {
+            return res.status(401).json({ error: 'Użytkownik nie istnieje.' });
+        }
+        req.userId = user.id;
+        req.user = user;
         next();
     } catch {
         return res.status(401).json({ error: 'Nieprawidłowy lub wygasły token.' });
@@ -62,7 +90,15 @@ app.post('/api/register', async (req, res) => {
             build_slots: [],
         });
         const token = createToken(user);
-        res.json({ token, user: { id: user.id, email, name: user.name } });
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                email,
+                name: user.name,
+                subscriptionTier: user.subscriptionTier,
+            },
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: err.message });
@@ -79,11 +115,34 @@ app.post('/api/login', async (req, res) => {
         }
 
         const token = createToken(user);
-        res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                subscriptionTier: user.subscriptionTier,
+            },
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: err.message });
     }
+});
+
+app.get('/api/catalog', (req, res) => {
+    res.json(CATALOG);
+});
+
+app.get('/api/session', requireAuth, (req, res) => {
+    res.json({
+        user: {
+            id: req.user.id,
+            email: req.user.email,
+            name: req.user.name,
+            subscriptionTier: req.user.subscriptionTier,
+        },
+    });
 });
 
 app.post('/api/logout', (req, res) => {
@@ -97,10 +156,7 @@ function parseSlot(value) {
 
 app.get('/api/builds', requireAuth, async (req, res) => {
     try {
-        const user = await Users.findByPk(req.userId);
-        if (!user) {
-            return res.status(401).json({ error: 'Użytkownik nie istnieje.' });
-        }
+        const user = req.user;
 
         const slots = Array.isArray(user.build_slots) ? user.build_slots : [];
         return res.json({
@@ -126,10 +182,7 @@ app.get('/api/builds/:slot', requireAuth, async (req, res) => {
     }
 
     try {
-        const user = await Users.findByPk(req.userId);
-        if (!user) {
-            return res.status(401).json({ error: 'Użytkownik nie istnieje.' });
-        }
+        const user = req.user;
 
         const slot = (Array.isArray(user.build_slots) ? user.build_slots : [])
             .find((item) => item.slot === slotNumber);
@@ -147,9 +200,17 @@ app.post('/api/saveBuild', requireAuth, async (req, res) => {
     }
 
     try {
-        const user = await Users.findByPk(req.userId);
-        if (!user) {
-            return res.status(401).json({ error: 'Użytkownik nie istnieje.' });
+        const user = req.user;
+
+        const selectedRim = req.body.config.rim || req.body.config.tire;
+
+        const rim = CATALOG.rims.find((item) => item.value === selectedRim);
+        const spoiler = CATALOG.spoilers.find((item) => item.value === req.body.config.spoiler);
+
+        const vipParts = [rim, spoiler].filter((item) => item?.tier === 'vip');
+        
+        if (vipParts.length && user.subscriptionTier !== 'vip') {
+            return res.status(403).json({ error: 'Tylko użytkownik VIP może zapisywać części VIP.' });
         }
 
         const slots = Array.isArray(user.build_slots) ? user.build_slots : [];
