@@ -6,7 +6,6 @@ const CATEGORY_LABELS = {
     spoilers: 'Spoilery',
 };
 
-// { paints: [{value, tier}], rims: [...] } -> [{id, name, category, tier}, ...]
 const flattenCatalog = (catalog) =>
     Object.entries(catalog).flatMap(([category, items]) =>
         items.map((item) => ({
@@ -26,7 +25,6 @@ const authFetch = (url, options = {}) =>
         },
     });
 
-// Safe JSON parsing: a readable error instead of "Unexpected token '<'"
 async function readJson(res) {
     const text = await res.text();
     let data = {};
@@ -276,9 +274,6 @@ export default function AdminDashboard() {
                                 <h2 className="text-2xl font-bold">Katalog Assetów 3D</h2>
                                 <p className="text-sm text-slate-400 mt-1">Zarządzaj modelami 3D wykorzystywanymi w konfiguratorze auta.</p>
                             </div>
-                            <button className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium transition backdrop-blur-md">
-                                + Wgraj nowy model (.glb)
-                            </button>
                         </div>
 
                         <div className="bg-black/40 rounded-xl border border-slate-800/80 overflow-hidden backdrop-blur-md">
@@ -378,8 +373,8 @@ export default function AdminDashboard() {
                                                     <td className="p-4 text-slate-300">{u.email}</td>
                                                     <td className="p-4">
                                                         <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${u.subscriptionTier === 'vip'
-                                                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                                                : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                                            : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                                                             }`}>
                                                             {u.subscriptionTier === 'vip' ? 'VIP' : 'FREE'}
                                                         </span>

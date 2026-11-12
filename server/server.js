@@ -264,6 +264,7 @@ app.get('/api/session', requireAuth, (req, res) => {
             email: req.user.email,
             name: req.user.name,
             subscriptionTier: req.user.subscriptionTier,
+            isAdmin: req.user.isAdmin
         },
     });
 });
