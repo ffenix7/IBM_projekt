@@ -163,7 +163,7 @@ app.get('/api/catalog', (req, res) => {
     res.json(CATALOG);
 });
 
-app.patch('/api/catalog/item', requireAdmin, async (req, res) => {
+app.patch('/api/catalog/item', requireAuth, requireAdmin, async (req, res) => {
     try {
         const { category, value, tier, newValue } = req.body;
 
@@ -206,7 +206,7 @@ app.patch('/api/catalog/item', requireAdmin, async (req, res) => {
     }
 });
 
-app.delete('/api/catalog/item', requireAdmin, async (req, res) => {
+app.delete('/api/catalog/item', requireAuth, requireAdmin, async (req, res) => {
     try {
         const { category, value } = req.body;
 
@@ -233,7 +233,7 @@ app.delete('/api/catalog/item', requireAdmin, async (req, res) => {
     }
 });
 
-app.patch('/api/users/:id', requireAdmin, async (req, res) => {
+app.patch('/api/users/:id', requireAuth, requireAdmin, async (req, res) => {
     try {
         const { subscriptionTier } = req.body;
 
@@ -257,7 +257,7 @@ app.patch('/api/users/:id', requireAdmin, async (req, res) => {
     }
 });
 
-app.delete('/api/users/:id', requireAdmin, async (req, res) => {
+app.delete('/api/users/:id', requireAuth, requireAdmin, async (req, res) => {
     try {
         const user = await Users.findByPk(req.params.id);
         if (!user) {
@@ -384,7 +384,7 @@ try {
     console.error('Nie można połączyć z bazą:', err.message);
 }
 
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', requireAuth, requireAdmin, async (req, res) => {
     try {
         const users = await Users.findAll({
             where: { isAdmin: false },
