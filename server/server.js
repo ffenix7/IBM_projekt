@@ -184,11 +184,11 @@ app.patch('/api/catalog/item', requireAuth, requireAdmin, async (req, res) => {
             item.tier = tier;
         }
 
-        if (newValue !== undefined && newValue.toLowerCase() !== item.value) {
+        if (newValue !== undefined && newValue !== item.value) {
             if (category !== 'paints') {
                 return res.status(400).json({ error: 'Nazwę można zmienić tylko dla lakierów.' });
             }
-            if (!/^#[0-9a-f]{6}$/i.test(newValue)) {
+            if (typeof newValue !== 'string' || !/^#[0-9a-f]{6}$/i.test(newValue)) {
                 return res.status(400).json({ error: 'Kolor musi mieć format #rrggbb.' });
             }
             const color = newValue.toLowerCase();
