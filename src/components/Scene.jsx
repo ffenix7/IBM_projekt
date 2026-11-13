@@ -31,6 +31,10 @@ const SPOILER_INFO = {
     Spoiler2: { label: 'Sportowy', icon: './icons/spoilers/spoiler2.png' },
 };
 
+function hasVipAccess(subscriptionTier) {
+    return String(subscriptionTier || '').trim().toLowerCase() === 'vip';
+}
+
 // Parts changed only by color (part id -> key in the colors state)
 const COLOR_PARTS = {
     tires: 'tires',
