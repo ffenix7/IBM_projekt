@@ -20,26 +20,21 @@ const PARTS = [
 ];
 
 // Bottom menu: available variants
-const RIM_OPTIONS = [
-    { value: 'Felgi1', label: 'Sportowe', icon: './icons/rims/felgi1.png', tier: 'free' },
-    { value: 'Felgi2', label: 'Klasyczne', icon: './icons/rims/felgi2.png', tier: 'vip' },
-];
+const RIM_INFO = {
+    Felgi1: { label: 'Sportowe', icon: './icons/rims/felgi1.png' },
+    Felgi2: { label: 'Klasyczne', icon: './icons/rims/felgi2.png' },
+};
 
-const SPOILER_OPTIONS = [
-    { value: 'Spoiler1', label: 'Klasyczny', icon: './icons/spoilers/spoiler1.png', tier: 'free' },
-    { value: 'Spoiler2', label: 'Sportowy', icon: './icons/spoilers/spoiler2.png', tier: 'free' },
-];
+const SPOILER_INFO = {
+    Spoiler1: { label: 'Klasyczny', icon: './icons/spoilers/spoiler1.png' },
+    Spoiler2: { label: 'Sportowy', icon: './icons/spoilers/spoiler2.png' },
+};
 
 // Parts changed only by color (part id -> key in the colors state)
 const COLOR_PARTS = {
     tires: 'tires',
     body: 'body',
 };
-
-const COLOR_PRESETS = [
-    '#ffffff', '#101211', '#8a8d91', '#c0210c', '#f97316', '#facc15',
-    '#00c946', '#1091b1', '#176193', '#6d28d9', '#db2777',
-].map((value) => ({ value, tier: 'free' }));
 
 // Which menu part opens after clicking a dot on the car
 const DOT_TO_PART = {
@@ -145,20 +140,25 @@ function OptionTile({ option, active, onClick, locked }) {
     );
 }
 
-function ColorOptions({ value, onChange }) {
+function ColorOptions({ value, onChange, paints, subscriptionTier }) {
     return (
         <div className="flex shrink-0 items-center gap-2">
-            {COLOR_PRESETS.map((color) => (
-                <button
-                    key={color.value}
-                    type="button"
-                    onClick={() => onChange(color.value)}
-                    aria-label={`Kolor ${color.value}`}
-                    style={{ backgroundColor: color.value }}
-                    className={`h-10 w-10 shrink-0 cursor-pointer rounded-full border-2 transition
-                        ${value.toLowerCase() === color.value ? 'border-sky-400 scale-110' : 'border-white/20 hover:border-white/60'}`}
-                />
-            ))}
+            {paints.map((color) => {
+                const locked = color.tier === 'vip' && subscriptionTier !== 'vip';
+                return (
+                    <button
+                        key={color.value}
+                        type="button"
+                        disabled={locked}
+                        onClick={() => onChange(color.value)}
+                        aria-label={`Kolor ${color.value}`}
+                        style={{ backgroundColor: color.value }}
+                        className={`h-10 w-10 shrink-0 cursor-pointer rounded-full border-2 transition
+                            ${locked ? 'cursor-not-allowed border-amber-400 opacity-60' : ''}
+                            ${value.toLowerCase() === color.value ? 'border-sky-400 scale-110' : 'border-white/20 hover:border-white/60'}`}
+                    />
+                );
+            })}
             <label className="flex shrink-0 cursor-pointer flex-col items-center gap-1 pl-2 text-xs text-white/70">
                 <input
                     type="color"
@@ -244,6 +244,29 @@ export default function Scene() {
 
     const [isFocused, setIsFocused] = useState(false);
     const [isShown, setIsShown] = useState(true);
+
+
+    //fetching the info from backend catalog
+    const [catalog, setCatalog] = useState({ paints: [], rims: [], spoilers: [] });
+
+    useEffect(() => {
+        fetch('/api/catalog')
+            .then((res) => res.json())
+            .then(setCatalog)
+            .catch((error) => console.error('Nie udało się pobrać katalogu:', error.message));
+    }, []);
+
+    const rimOptions = catalog.rims.map((item) => ({
+        ...item,
+        label: RIM_INFO[item.value]?.label ?? item.value,
+        icon: RIM_INFO[item.value]?.icon,
+    }));
+
+    const spoilerOptions = catalog.spoilers.map((item) => ({
+        ...item,
+        label: SPOILER_INFO[item.value]?.label ?? item.value,
+        icon: SPOILER_INFO[item.value]?.icon,
+    }));
 
     const refreshSession = async () => {
         if (!localStorage.getItem('token')) {
@@ -439,7 +462,7 @@ export default function Scene() {
                         />
                     ))}
                     <Divider />
-                    <ColorOptions value={colors.spoiler} onChange={setColor('spoiler')} />
+                    <ColorOptions value={colors.spoiler} onChange={setColor('spoiler')} paints={catalog.paints} subscriptionTier={subscriptionTier} />
                 </>
             );
         }
@@ -461,7 +484,7 @@ export default function Scene() {
 
         if (COLOR_PARTS[activePart]) {
             const key = COLOR_PARTS[activePart];
-            return <ColorOptions value={colors[key]} onChange={setColor(key)} />;
+            return <ColorOptions value={colors[key]} onChange={setColor(key)} paints={catalog.paints} subscriptionTier={subscriptionTier} />;
         }
 
         return null;
@@ -480,7 +503,7 @@ export default function Scene() {
             const result = await post('/api/saveBuild', {
                 slot: activeSlot,
                 config: {
-                rim: selectedRim,
+                    rim: selectedRim,
                     spoiler: selectedSpoiler,
                     registrationText,
                     colors,
