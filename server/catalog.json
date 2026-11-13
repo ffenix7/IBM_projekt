@@ -1,0 +1,68 @@
+{
+    "paints": [
+        {
+            "value": "#ffffff",
+            "tier": "free"
+        },
+        {
+            "value": "#101211",
+            "tier": "free"
+        },
+        {
+            "value": "#8a8d91",
+            "tier": "free"
+        },
+        {
+            "value": "#c0210c",
+            "tier": "free"
+        },
+        {
+            "value": "#f97316",
+            "tier": "free"
+        },
+        {
+            "value": "#facc15",
+            "tier": "free"
+        },
+        {
+            "value": "#00c946",
+            "tier": "free"
+        },
+        {
+            "value": "#1091b1",
+            "tier": "free"
+        },
+        {
+            "value": "#176193",
+            "tier": "free"
+        },
+        {
+            "value": "#6d28d9",
+            "tier": "free"
+        },
+        {
+            "value": "#db2777",
+            "tier": "free"
+        }
+    ],
+    "rims": [
+        {
+            "value": "Felgi1",
+            "tier": "free"
+        },
+        {
+            "value": "Felgi2",
+            "tier": "vip"
+        }
+    ],
+    "spoilers": [
+        {
+            "value": "Spoiler1",
+            "tier": "free"
+        },
+        {
+            "value": "Spoiler2",
+            "tier": "free"
+        }
+    ]
+}
