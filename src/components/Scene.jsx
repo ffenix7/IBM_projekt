@@ -434,7 +434,7 @@ export default function Scene() {
         if (activePart === 'rims') {
             return (
                 <>
-                    {RIM_OPTIONS.map((option) => (
+                    {rimOptions.map((option) => (
                         <OptionTile
                             key={option.value}
                             option={option}
@@ -454,7 +454,7 @@ export default function Scene() {
         if (activePart === 'spoiler') {
             return (
                 <>
-                    {SPOILER_OPTIONS.map((option) => (
+                    {spoilerOptions.map((option) => (
                         <OptionTile
                             key={option.value}
                             option={option}
