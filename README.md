@@ -72,6 +72,14 @@ The `npm run build` command first compresses all `.glb` models into
 `public/compressed/`, copies the Draco decoder, and then creates the `dist/`
 directory.
 
+### Render
+
+The `render.yaml` blueprint deploys the frontend as a static site and the
+Express API as a separate Node web service. Set `DB_URL` and `JWT_SECRET` on
+the `ibm-projekt-backend` service. The frontend uses
+`https://ibm-projekt-backend.onrender.com` for production API requests; set
+`VITE_API_URL` if the backend has a different URL.
+
 ## Project structure
 
 ```text

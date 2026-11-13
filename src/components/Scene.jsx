@@ -7,6 +7,7 @@ import { CarModel } from './CarModel';
 import { Garage } from './Garage';
 import { Dots } from './Dots';
 import { AuthPanel, get, post, storedUser } from './AuthPanel';
+import { apiUrl } from '../api';
 
 // Left menu: parts that can be changed
 const PARTS = [
@@ -250,7 +251,7 @@ export default function Scene() {
     const [catalog, setCatalog] = useState({ paints: [], rims: [], spoilers: [] });
 
     useEffect(() => {
-        fetch('/api/catalog')
+        fetch(apiUrl('/api/catalog'))
             .then((res) => res.json())
             .then(setCatalog)
             .catch((error) => console.error('Nie udało się pobrać katalogu:', error.message));

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { authFetch } from '../api';
 
 const CATEGORY_LABELS = {
     paints: 'Lakiery',
@@ -15,15 +16,6 @@ const flattenCatalog = (catalog) =>
             tier: item.tier,
         }))
     );
-
-const authFetch = (url, options = {}) =>
-    fetch(url, {
-        ...options,
-        headers: {
-            ...options.headers,
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-    });
 
 async function readJson(res) {
     const text = await res.text();

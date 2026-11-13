@@ -378,7 +378,8 @@ app.post('/api/saveBuild', requireAuth, async (req, res) => {
 try {
     await sequelize.authenticate();
     await sequelize.sync({ alter: true }); //TODO: delete alter: true; before deploying 
-    app.listen(3001, () => console.log('Serwer działa na porcie 3001'));
+    const port = process.env.PORT || 3001;
+    app.listen(port, () => console.log(`Serwer działa na porcie ${port}`));
 } catch (err) {
     console.error('Nie można połączyć z bazą:', err.message);
 }

@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-
-const API_BASE_URL = import.meta.env.PROD
-    ? 'https://ibm-projekt-backend.onrender.com'
-    : '';
+import { apiUrl, authHeaders } from '../api';
 
 export function storedUser() {
     try {
@@ -39,22 +36,19 @@ async function responseData(res) {
 }
 
 export async function post(url, body) {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`${API_BASE_URL}${url}`, {
+    const res = await fetch(apiUrl(url), {
         method: 'POST',
-        headers: {
+        headers: authHeaders({
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        }),
         body: JSON.stringify(body),
     });
     return responseData(res);
 }
 
 export async function get(url) {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`${API_BASE_URL}${url}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    const res = await fetch(apiUrl(url), {
+        headers: authHeaders(),
     });
     return responseData(res);
 }
