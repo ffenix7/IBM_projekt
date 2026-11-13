@@ -273,6 +273,20 @@ export default function Scene() {
         icon: SPOILER_INFO[item.value]?.icon,
     }));
 
+    useEffect(() => {
+        if (hasVipAccess(subscriptionTier)) return;
+
+        const freeRim = rimOptions.find((option) => option.tier !== 'vip');
+        if (freeRim && rimOptions.some((option) => option.value === selectedRim && option.tier === 'vip')) {
+            setSelectedRim(freeRim.value);
+        }
+
+        const freeSpoiler = spoilerOptions.find((option) => option.tier !== 'vip');
+        if (freeSpoiler && spoilerOptions.some((option) => option.value === selectedSpoiler && option.tier === 'vip')) {
+            setSelectedSpoiler(freeSpoiler.value);
+        }
+    }, [catalog, selectedRim, selectedSpoiler, subscriptionTier]);
+
     const refreshSession = async () => {
         if (!localStorage.getItem('token')) {
             setSubscriptionTier('free');
@@ -463,7 +477,12 @@ export default function Scene() {
                             key={option.value}
                             option={option}
                             active={selectedSpoiler === option.value}
-                            onClick={() => setSelectedSpoiler(option.value)}
+                            locked={option.tier === 'vip' && !hasVipAccess(subscriptionTier)}
+                            onClick={() => {
+                                if (option.tier !== 'vip' || hasVipAccess(subscriptionTier)) {
+                                    setSelectedSpoiler(option.value);
+                                }
+                            }}
                         />
                     ))}
                     <Divider />
