@@ -5,6 +5,15 @@ import { sequelize, Users } from './db.js';
 import fs from 'node:fs/promises';
 
 const app = express();
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+    next();
+});
 app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'development-secret-change-me';
@@ -56,6 +65,10 @@ function createToken(user) {
         JWT_SECRET,
         { expiresIn: '1h' },
     );
+}
+
+function hasVipAccess(subscriptionTier) {
+    return String(subscriptionTier || '').trim().toLowerCase() === 'vip';
 }
 
 async function requireAuth(req, res, next) {

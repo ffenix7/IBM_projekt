@@ -22,19 +22,19 @@ const WALLS = [
 ];
 
 const PROPS = [
-    { url: "/models/desk.glb", position: [10, 0, -3], rotation: [0, 0, 0], scale: 2.5 },
-    { url: "/models/cork.glb", position: [12, 3, 0], rotation: [0, Math.PI * 3 / 2, 0], scale: 6 },
-    { url: "/models/toolbox.glb", position: [9.5, 2, -3], rotation: [0, 0.3, 0], scale: 4 },
-    { url: "/models/toolbox.glb", position: [-9.5, 0, 8], rotation: [0, 2, 0], scale: 4 },
-    { url: "/models/barrel.glb", position: [-10.5, 0, -8], rotation: [0, 0, 0], scale: 10 },
-    { url: "/models/barrel.glb", position: [-10, 0, -5], rotation: [0, 2, 0], scale: 10 },
-    { url: "/models/barrel.glb", position: [-8.7, 0, -7], rotation: [0, 5, 0], scale: 10 },
-    { url: "/models/barrel.glb", position: [10, 0, 7], rotation: [0, 0.8, 0], scale: 10 },
-    { url: "/models/cone.glb", position: [10, 0.4, 2], rotation: [0, 0, 0], scale: 5 },
-    { url: "/models/cone.glb", position: [10, 0.4, 4], rotation: [0, 0.5, 0], scale: 5 },
-    { url: "/models/cone.glb", position: [9, 0.4, 3], rotation: [0, 0.5, 0], scale: 5 },
-    { url: "/models/ladder.glb", position: [7, 0, -10], rotation: [0, 0.5, 0], scale: 3 },
-    { url: "/models/shelf.glb", position: [7, 0, 11], rotation: [0, 0, 0], scale: 1.5 }
+    { url: "/compressed/models/desk.glb", position: [10, 0, -3], rotation: [0, 0, 0], scale: 2.5 },
+    { url: "/compressed/models/cork.glb", position: [12, 3, 0], rotation: [0, Math.PI * 3 / 2, 0], scale: 6 },
+    { url: "/compressed/models/toolbox.glb", position: [9.5, 2, -3], rotation: [0, 0.3, 0], scale: 4 },
+    { url: "/compressed/models/toolbox.glb", position: [-9.5, 0, 8], rotation: [0, 2, 0], scale: 4 },
+    { url: "/compressed/models/barrel.glb", position: [-10.5, 0, -8], rotation: [0, 0, 0], scale: 10 },
+    { url: "/compressed/models/barrel.glb", position: [-10, 0, -5], rotation: [0, 2, 0], scale: 10 },
+    { url: "/compressed/models/barrel.glb", position: [-8.7, 0, -7], rotation: [0, 5, 0], scale: 10 },
+    { url: "/compressed/models/barrel.glb", position: [10, 0, 7], rotation: [0, 0.8, 0], scale: 10 },
+    { url: "/compressed/models/cone.glb", position: [10, 0.4, 2], rotation: [0, 0, 0], scale: 5 },
+    { url: "/compressed/models/cone.glb", position: [10, 0.4, 4], rotation: [0, 0.5, 0], scale: 5 },
+    { url: "/compressed/models/cone.glb", position: [9, 0.4, 3], rotation: [0, 0.5, 0], scale: 5 },
+    { url: "/compressed/models/ladder.glb", position: [7, 0, -10], rotation: [0, 0.5, 0], scale: 3 },
+    { url: "/compressed/models/shelf.glb", position: [7, 0, 11], rotation: [0, 0, 0], scale: 1.5 }
 ];
 
 function usePbrTextures(path, repeat) {

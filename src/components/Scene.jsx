@@ -438,9 +438,9 @@ export default function Scene() {
                             key={option.value}
                             option={option}
                             active={selectedRim === option.value}
-                            locked={option.tier === 'vip' && subscriptionTier !== 'vip'}
+                            locked={option.tier === 'vip' && !hasVipAccess(subscriptionTier)}
                             onClick={() => {
-                                if (option.tier !== 'vip' || subscriptionTier === 'vip') {
+                                if (option.tier !== 'vip' || hasVipAccess(subscriptionTier)) {
                                     setSelectedRim(option.value);
                                 }
                             }}
@@ -676,7 +676,7 @@ export default function Scene() {
 
                 <Suspense fallback={null}>
                     <CarModel
-                        url="./Car.glb"
+                        url="/compressed/Car.glb"
                         selectedRimName={selectedRim}
                         selectedSpoilerName={selectedSpoiler}
                         rimSize={rimSize}
