@@ -38,8 +38,13 @@ const TIERS = ['free', 'vip'];
 
 try {
     Object.assign(CATALOG, JSON.parse(await fs.readFile(CATALOG_FILE, 'utf-8')));
-} catch {
-
+    console.log('Wczytano katalog z catalog.json');
+} catch (err) {
+    if (err.code === 'ENOENT') {
+        console.warn('Brak pliku catalog.json - używam domyślnego katalogu z server.js.');
+    } else {
+        console.warn(`Nie udało się wczytać catalog.json (${err.message}) - używam domyślnego katalogu.`);
+    }
 }
 
 const saveCatalog = () => fs.writeFile(CATALOG_FILE, JSON.stringify(CATALOG, null, 2));
@@ -79,7 +84,7 @@ async function requireAuth(req, res, next) {
 
 function requireAdmin(req, res, next) {
     if (!req.user?.isAdmin) {
-        return res.status(403).json({ error: 'Brak uprawnień administratora.' });
+        return res.status(404).json({ error: 'Brak uprawnień administratora.' });
     }
     next();
 }
